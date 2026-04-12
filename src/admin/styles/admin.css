@@ -82,6 +82,7 @@
 /* === Data Tables === */
 #admin-root .data-table-container { 
   background: #fff; border: 1px solid #eee; overflow-x: auto; 
+  -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
 }
 #admin-root .data-table { width: 100%; border-collapse: collapse; text-align: left; }
 #admin-root .data-table th { padding: 1.5rem 2rem; font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: #888; border-bottom: 1px solid #eee; background: #fafafa; letter-spacing: 1px; }
@@ -117,4 +118,51 @@
 }
 #admin-root .sidebar-nav::-webkit-scrollbar {
   display: none; /* Chrome, Safari and Opera */
+}
+
+
+/* =========================================
+   AGGRESSIVE MOBILE FIXES (DIRECT TARGETING)
+   ========================================= */
+
+@media (max-width: 768px) {
+    /* 1. Reclaim dead screen space by reducing the massive side padding */
+    #admin-root main {
+        padding: 1.5rem 1rem !important; 
+    }
+
+    /* 2. Fix Header Collision: Stack Title and Button vertically */
+    #admin-root .page-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 1.2rem !important;
+        margin-bottom: 2rem !important;
+    }
+    
+    /* Make the button stretch fully across the screen */
+    #admin-root .page-header .btn {
+        width: 100% !important;
+        text-align: center !important;
+    }
+
+    /* 3. Pull tables to the very edge of the screen */
+    #admin-root .data-table-container {
+        margin-left: -1rem !important; /* Matches main padding */
+        margin-right: -1rem !important; 
+        width: calc(100% + 2rem) !important;
+        border-radius: 0 !important;
+        border-left: none !important;
+        border-right: none !important;
+    }
+
+    /* 4. Force a minimum width on the table so it scrolls instead of squishing */
+    #admin-root .data-table {
+        min-width: 700px !important;
+    }
+
+    /* 5. Stat cards stack cleanly */
+    #admin-root .kpi-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
 }
