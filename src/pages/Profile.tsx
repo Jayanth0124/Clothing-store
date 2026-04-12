@@ -11,19 +11,30 @@ export default function Profile() {
   const [productsList, setProductsList] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('orders');
   
+  // Responsive State
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Review & Return State
   const [reviewingOrderId, setReviewingOrderId] = useState<string | null>(null);
   const [reviewProductId, setReviewProductId] = useState<string>('');
   const [reviewText, setReviewText] = useState('');
   const [reviewRating, setReviewRating] = useState('5');
-
   const [returningOrderId, setReturningOrderId] = useState<string | null>(null);
   const [returnReason, setReturnReason] = useState('');
 
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Handle window resize for responsive layout
   useEffect(() => {
-    window.scrollTo(0, 0);
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    window.scrollTo(0, 0); 
     if (location.hash) setActiveTab(location.hash.replace('#', ''));
 
     const checkUserAndFetchData = async () => {
@@ -140,32 +151,86 @@ export default function Profile() {
     showToast('Removed from Wishlist', 'info');
   };
 
+  // Change tab and close sidebar on mobile
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    if (isMobile) setIsSidebarOpen(false);
+  };
+
+  // Dynamic Sidebar Styles based on Mobile/Desktop
+  const sidebarStyle: React.CSSProperties = isMobile ? {
+    position: 'fixed',
+    top: 0,
+    left: isSidebarOpen ? 0 : '-300px',
+    width: '280px',
+    height: '100vh',
+    background: '#fff',
+    zIndex: 4000,
+    transition: 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    padding: '3rem 2rem',
+    boxShadow: isSidebarOpen ? '4px 0 15px rgba(0,0,0,0.1)' : 'none',
+    overflowY: 'auto'
+  } : {
+    border: '1px solid var(--border)',
+    padding: '2rem',
+    background: '#fff',
+    width: '250px',
+    flexShrink: 0
+  };
+
   return (
-    <main style={{ paddingTop: '150px', minHeight: '80vh' }} className="container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderBottom: '1px solid var(--border)', paddingBottom: '2rem', marginBottom: '3rem' }}>
+    <main style={{ paddingTop: '120px', minHeight: '80vh', paddingBottom: '6rem' }} className="container">
+      
+      {/* Mobile Sidebar Overlay */}
+      {isMobile && isSidebarOpen && (
+        <div 
+          onClick={() => setIsSidebarOpen(false)} 
+          style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', zIndex: 3999, backdropFilter: 'blur(2px)' }}
+        />
+      )}
+
+      {/* Header Section */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'flex-end', flexDirection: isMobile ? 'column' : 'row', gap: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '2rem', marginBottom: '3rem' }}>
         <div>
           <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3rem)', marginBottom: '0.5rem', textTransform: 'uppercase', fontFamily: 'Italiana, serif' }}>My Account</h1>
-          <p style={{ color: '#666', fontSize: '0.95rem', letterSpacing: '1px' }}>{userEmail}</p>
+          <p style={{ color: '#666', fontSize: '0.95rem', letterSpacing: '1px', wordBreak: 'break-all' }}>{userEmail}</p>
         </div>
-        <button onClick={handleLogout} className="btn" style={{ padding: '0.8rem 2rem' }}>Sign Out</button>
+        <button onClick={handleLogout} className="btn" style={{ padding: '0.8rem 2rem', width: isMobile ? '100%' : 'auto' }}>Sign Out</button>
       </div>
 
-      <div className="profile-grid" style={{ display: 'grid', gridTemplateColumns: '250px 1fr', gap: '4rem', alignItems: 'start' }}>
-        <aside style={{ border: '1px solid var(--border)', padding: '2rem', background: '#fff' }}>
+      {/* Mobile Hamburger Button */}
+      {isMobile && (
+        <button onClick={() => setIsSidebarOpen(true)} style={{ background: '#000', color: '#fff', border: 'none', padding: '0.8rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.8rem', cursor: 'pointer', marginBottom: '2rem', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.8rem', fontWeight: 600 }}>
+          <span style={{ fontSize: '1.2rem' }}>☰</span> Account Menu
+        </button>
+      )}
+
+      {/* Main Layout (Flexbox) */}
+      <div style={{ display: 'flex', gap: isMobile ? '0' : '4rem', alignItems: 'flex-start' }}>
+        
+        {/* Sidebar Navigation */}
+        <aside style={sidebarStyle}>
+          {isMobile && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
+              <h3 style={{ fontFamily: 'Italiana, serif', fontSize: '1.5rem', margin: 0 }}>Menu</h3>
+              <button onClick={() => setIsSidebarOpen(false)} style={{ background: 'none', border: 'none', fontSize: '2rem', cursor: 'pointer' }}>&times;</button>
+            </div>
+          )}
           <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '1.5rem', margin: 0, padding: 0 }}>
-            <li><button onClick={() => setActiveTab('orders')} style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', color: activeTab === 'orders' ? '#000' : '#888', fontWeight: activeTab === 'orders' ? 600 : 400, textTransform: 'uppercase', fontSize: '0.85rem', width: '100%' }}>📦 My Orders</button></li>
-            <li><button onClick={() => setActiveTab('wishlist')} style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', color: activeTab === 'wishlist' ? '#000' : '#888', fontWeight: activeTab === 'wishlist' ? 600 : 400, textTransform: 'uppercase', fontSize: '0.85rem', width: '100%' }}>❤️ Wishlist</button></li>
-            <li><button onClick={() => setActiveTab('addresses')} style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', color: activeTab === 'addresses' ? '#000' : '#888', fontWeight: activeTab === 'addresses' ? 600 : 400, textTransform: 'uppercase', fontSize: '0.85rem', width: '100%' }}>📍 Addresses</button></li>
-            <li><button onClick={() => setActiveTab('settings')} style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', color: activeTab === 'settings' ? '#000' : '#888', fontWeight: activeTab === 'settings' ? 600 : 400, textTransform: 'uppercase', fontSize: '0.85rem', width: '100%' }}>⚙️ Settings</button></li>
+            <li><button onClick={() => handleTabChange('orders')} style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', color: activeTab === 'orders' ? '#000' : '#888', fontWeight: activeTab === 'orders' ? 600 : 400, textTransform: 'uppercase', fontSize: '0.85rem', width: '100%', transition: 'color 0.3s' }}>📦 My Orders</button></li>
+            <li><button onClick={() => handleTabChange('wishlist')} style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', color: activeTab === 'wishlist' ? '#000' : '#888', fontWeight: activeTab === 'wishlist' ? 600 : 400, textTransform: 'uppercase', fontSize: '0.85rem', width: '100%', transition: 'color 0.3s' }}>❤️ Wishlist</button></li>
+            <li><button onClick={() => handleTabChange('addresses')} style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', color: activeTab === 'addresses' ? '#000' : '#888', fontWeight: activeTab === 'addresses' ? 600 : 400, textTransform: 'uppercase', fontSize: '0.85rem', width: '100%', transition: 'color 0.3s' }}>📍 Addresses</button></li>
+            <li><button onClick={() => handleTabChange('settings')} style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', color: activeTab === 'settings' ? '#000' : '#888', fontWeight: activeTab === 'settings' ? 600 : 400, textTransform: 'uppercase', fontSize: '0.85rem', width: '100%', transition: 'color 0.3s' }}>⚙️ Settings</button></li>
           </ul>
         </aside>
 
-        <section>
+        {/* Main Content Area */}
+        <section style={{ width: '100%', flex: 1 }}>
           {activeTab === 'orders' && (
             <div>
               <h2 style={{ fontSize: '1.5rem', marginBottom: '2rem', fontFamily: 'Italiana, serif' }}>Order History</h2>
               {orders.length === 0 ? (
-                <div style={{ padding: '4rem', textAlign: 'center', background: '#fafafa', border: '1px solid #eee' }}>
+                <div style={{ padding: '4rem 2rem', textAlign: 'center', background: '#fafafa', border: '1px solid #eee' }}>
                   <p style={{ color: '#666', marginBottom: '1.5rem' }}>You haven't placed any orders yet.</p>
                   <button onClick={() => navigate('/shop')} className="btn" style={{ background: '#000', color: '#fff' }}>Explore Collection</button>
                 </div>
@@ -175,13 +240,21 @@ export default function Profile() {
                   const isCancelled = order.status === 'Cancelled';
                   
                   return (
-                    <div key={order.id} style={{ border: '1px solid #e5e5e5', padding: '2rem', marginBottom: '2rem', background: '#fff' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f4f4f4', paddingBottom: '1.5rem', marginBottom: '1.5rem' }}>
-                        <div><span style={{ fontSize: '0.75rem', color: '#888' }}>Order Ref</span><h4>{order.id}</h4></div>
-                        <div style={{ textAlign: 'right' }}><span style={{ fontSize: '0.75rem', color: '#888' }}>Date</span><p>{new Date(order.created_at).toLocaleDateString()}</p></div>
+                    <div key={order.id} style={{ border: '1px solid #e5e5e5', padding: isMobile ? '1.5rem 1rem' : '1.5rem', marginBottom: '2rem', background: '#fff', width: '100%' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '1rem' : '0', borderBottom: '1px solid #f4f4f4', paddingBottom: '1.5rem', marginBottom: '1.5rem' }}>
+                        <div>
+                          <span style={{ fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Order Ref</span>
+                          <h4 style={{ fontFamily: 'monospace', fontSize: '1.1rem', marginTop: '0.2rem' }} title={order.id}>
+                            {order.id.substring(0, 8).toUpperCase()}
+                          </h4>
+                        </div>
+                        <div style={{ textAlign: isMobile ? 'left' : 'right' }}>
+                          <span style={{ fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Date</span>
+                          <p style={{ marginTop: '0.2rem', fontWeight: 600 }}>{new Date(order.created_at).toLocaleDateString()}</p>
+                        </div>
                       </div>
                       
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: '1rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                           <span style={{ background: isPreShipment ? '#fff3cd' : (isCancelled ? '#fee2e2' : '#e6f4ea'), color: isPreShipment ? '#856404' : (isCancelled ? '#991b1b' : '#1e8e3e'), padding: '6px 12px', borderRadius: '2px', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>
                             {order.status}
@@ -205,33 +278,34 @@ export default function Profile() {
                             </>
                           )}
                         </div>
-                        <div style={{ textAlign: 'right' }}>
+                        <div style={{ textAlign: isMobile ? 'left' : 'right', width: isMobile ? '100%' : 'auto', paddingTop: isMobile ? '1rem' : '0', borderTop: isMobile ? '1px solid #eee' : 'none' }}>
                           <span style={{ fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Total</span>
-                          <p style={{ fontSize: '1.5rem', fontWeight: 600, marginTop: '0.5rem' }}>₹{order.total_amount?.toLocaleString()}</p>
+                          <p style={{ fontSize: '1.5rem', fontWeight: 600, marginTop: '0.2rem' }}>₹{order.total_amount?.toLocaleString()}</p>
                         </div>
                       </div>
 
+                      {/* INLINE RETURN FORM */}
                       {returningOrderId === order.id && (
-                        <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px dashed #e5e5e5' }}>
+                        <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px dashed #e5e5e5' }}>
                           <h5 style={{ fontFamily: 'Italiana, serif', fontSize: '1.2rem', marginBottom: '0.5rem' }}>Request a Return</h5>
-                          <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1rem', fontFamily: 'Manrope, sans-serif' }}>Please let us know why you are returning this item.</p>
-                          <textarea value={returnReason} onChange={(e) => setReturnReason(e.target.value)} placeholder="Reason for return..." rows={3} style={{ width: '100%', padding: '1rem', border: '1px solid #ddd', outline: 'none', marginBottom: '1rem', resize: 'vertical' }}></textarea>
-                          <div style={{ display: 'flex', gap: '1rem' }}>
-                            <button onClick={submitReturn} style={{ background: '#000', color: '#fff', padding: '0.8rem 1.5rem', border: 'none', cursor: 'pointer', textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: '1px', fontWeight: 600 }}>Submit Request</button>
+                          <textarea value={returnReason} onChange={(e) => setReturnReason(e.target.value)} placeholder="Reason for return..." rows={3} style={{ width: '100%', padding: '1rem', border: '1px solid #ddd', outline: 'none', marginBottom: '1rem', resize: 'vertical', fontFamily: 'inherit' }}></textarea>
+                          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                            <button onClick={submitReturn} style={{ background: '#000', color: '#fff', padding: '0.8rem 1.5rem', border: 'none', cursor: 'pointer', textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: '1px', fontWeight: 600 }}>Submit</button>
                             <button onClick={() => setReturningOrderId(null)} style={{ background: 'none', color: '#888', padding: '0.8rem 1.5rem', border: '1px solid #ddd', cursor: 'pointer', textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: '1px' }}>Cancel</button>
                           </div>
                         </div>
                       )}
 
+                      {/* INLINE REVIEW FORM */}
                       {reviewingOrderId === order.id && (
-                        <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px dashed #e5e5e5' }}>
+                        <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px dashed #e5e5e5' }}>
                           <h5 style={{ fontFamily: 'Italiana, serif', fontSize: '1.2rem', marginBottom: '1rem' }}>Review your items</h5>
                           <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-                            <select value={reviewProductId} onChange={(e) => setReviewProductId(e.target.value)} style={{ padding: '0.8rem', border: '1px solid #ddd', flex: 1, minWidth: '200px', outline: 'none' }}>
-                              <option value="">Select the product you bought...</option>
+                            <select value={reviewProductId} onChange={(e) => setReviewProductId(e.target.value)} style={{ padding: '0.8rem', border: '1px solid #ddd', flex: 1, minWidth: '100%', outline: 'none', fontFamily: 'inherit' }}>
+                              <option value="">Select product...</option>
                               {productsList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                             </select>
-                            <select value={reviewRating} onChange={(e) => setReviewRating(e.target.value)} style={{ padding: '0.8rem', border: '1px solid #ddd', outline: 'none', minWidth: '150px' }}>
+                            <select value={reviewRating} onChange={(e) => setReviewRating(e.target.value)} style={{ padding: '0.8rem', border: '1px solid #ddd', outline: 'none', width: '100%', fontFamily: 'inherit' }}>
                               <option value="5">★★★★★ (5/5)</option>
                               <option value="4">★★★★☆ (4/5)</option>
                               <option value="3">★★★☆☆ (3/5)</option>
@@ -239,9 +313,9 @@ export default function Profile() {
                               <option value="1">★☆☆☆☆ (1/5)</option>
                             </select>
                           </div>
-                          <textarea value={reviewText} onChange={(e) => setReviewText(e.target.value)} placeholder="Tell us what you loved about the product..." rows={3} style={{ width: '100%', padding: '1rem', border: '1px solid #ddd', outline: 'none', marginBottom: '1rem', resize: 'vertical' }}></textarea>
-                          <div style={{ display: 'flex', gap: '1rem' }}>
-                            <button onClick={submitReview} style={{ background: '#000', color: '#fff', padding: '0.8rem 1.5rem', border: 'none', cursor: 'pointer', textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: '1px', fontWeight: 600 }}>Submit Review</button>
+                          <textarea value={reviewText} onChange={(e) => setReviewText(e.target.value)} placeholder="Tell us what you loved..." rows={3} style={{ width: '100%', padding: '1rem', border: '1px solid #ddd', outline: 'none', marginBottom: '1rem', resize: 'vertical', fontFamily: 'inherit' }}></textarea>
+                          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                            <button onClick={submitReview} style={{ background: '#000', color: '#fff', padding: '0.8rem 1.5rem', border: 'none', cursor: 'pointer', textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: '1px', fontWeight: 600 }}>Submit</button>
                             <button onClick={() => setReviewingOrderId(null)} style={{ background: 'none', color: '#888', padding: '0.8rem 1.5rem', border: '1px solid #ddd', cursor: 'pointer', textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: '1px' }}>Cancel</button>
                           </div>
                         </div>
@@ -276,9 +350,9 @@ export default function Profile() {
 
           {activeTab === 'addresses' && (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <h2 style={{ fontSize: '1.5rem', fontFamily: 'Italiana, serif', margin: 0 }}>Saved Addresses</h2>
-                <button onClick={handleAddAddress} className="btn" style={{ background: '#000', color: '#fff', padding: '0.8rem 1.5rem' }}>+ Add New Address</button>
+                <button onClick={handleAddAddress} className="btn" style={{ background: '#000', color: '#fff', padding: '0.8rem 1.5rem' }}>+ Add New</button>
               </div>
               
               {addresses.length === 0 ? (
@@ -288,8 +362,8 @@ export default function Profile() {
               ) : (
                 <div style={{ display: 'grid', gap: '1rem' }}>
                   {addresses.map((addr, idx) => (
-                    <div key={idx} style={{ padding: '1.5rem', border: '1px solid #e5e5e5', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <p style={{ margin: 0, color: '#333', lineHeight: 1.6 }}>{addr}</p>
+                    <div key={idx} style={{ padding: '1.5rem', border: '1px solid #e5e5e5', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                      <p style={{ margin: 0, color: '#333', lineHeight: 1.6, flex: 1 }}>{addr}</p>
                       <button onClick={() => removeAddress(idx)} style={{ color: '#ff4444', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.85rem' }}>Remove</button>
                     </div>
                   ))}

@@ -1,120 +1,94 @@
-import { Product } from './data';
-
-export interface CartItem extends Product {
-  quantity: number;
-  selectedSize?: string;
-  selectedColor?: string;
-  variantId: string; // Unique ID for (Product + Size + Color)
-}
-
 export class CartManager {
-  public items: CartItem[] = [];
-  
+  items: any[] = [];
+
   constructor() {
-    this.load();
-    this.render();
+    this.loadCart();
+    this.bindEvents();
   }
 
-  // Updated to accept Size and Color
-  add(product: Product, qty: number = 1, size: string = 'M', color: string = 'Default') {
-    // Create a unique ID for this specific combination
-    const variantId = `${product.id}-${size}-${color}`;
-    
-    const existing = this.items.find(i => i.variantId === variantId);
-    
+  loadCart() {
+    const saved = localStorage.getItem('vito_cart_v2');
+    if (saved) {
+      this.items = JSON.parse(saved);
+    }
+    this.updateDOM();
+  }
+
+  saveCart() {
+    localStorage.setItem('vito_cart_v2', JSON.stringify(this.items));
+    this.updateDOM();
+  }
+
+  add(product: any, qty: number, size: string, color: string) {
+    const existing = this.items.find(i => i.id === product.id && i.size === size && i.color === color);
     if (existing) {
       existing.quantity += qty;
     } else {
-      this.items.push({ 
-        ...product, 
-        quantity: qty, 
-        selectedSize: size, 
-        selectedColor: color,
-        variantId: variantId 
-      });
+      this.items.push({ ...product, quantity: qty, size, color });
     }
-    
-    this.save();
-    this.render();
-    this.showNotification(`Added ${qty} x ${product.name} (${size})`);
-    
-    // DISABLE AUTO-OPEN (As requested)
-    // document.getElementById('cart-sidebar')?.classList.add('active');
-    // document.querySelector('.overlay')?.classList.add('active');
+    this.saveCart();
+    this.open();
   }
 
-  remove(variantId: string) {
-    this.items = this.items.filter(i => i.variantId !== variantId);
-    this.save();
+  // NEW: Function to remove items
+  remove(index: number) {
+    this.items.splice(index, 1);
+    this.saveCart();
+  }
+
+  updateDOM() {
+    // This custom event tells the React Navbar to update the counter!
+    window.dispatchEvent(new Event('cart-updated'));
     this.render();
   }
 
-  updateQuantity(variantId: string, change: number) {
-    const item = this.items.find(i => i.variantId === variantId);
-    if (!item) return;
+  open() {
+    document.getElementById('cart-sidebar')?.classList.add('active');
+    document.querySelector('.overlay')?.classList.add('active');
+    this.render();
+  }
 
-    item.quantity += change;
-    if (item.quantity <= 0) {
-      this.remove(variantId);
-    } else {
-      this.save();
-      this.render();
+  render() {
+    const container = document.getElementById('cart-items-container');
+    if (!container) return;
+
+    if (this.items.length === 0) {
+      container.innerHTML = '<p style="text-align:center; color:#888; padding:3rem 1rem;">Your cart is empty.</p>';
+      return;
     }
-  }
 
-  private save() {
-    localStorage.setItem('vito_cart_v2', JSON.stringify(this.items));
-    document.dispatchEvent(new Event('cart-updated')); 
-  }
-
-  private load() {
-    const data = localStorage.getItem('vito_cart_v2');
-    if (data) this.items = JSON.parse(data);
-  }
-
-  private showNotification(msg: string) {
-    const toast = document.getElementById('toast');
-    if (toast) {
-      toast.innerText = msg;
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 3000);
-    }
-  }
-
-  private render() {
-    const countEl = document.getElementById('cart-count');
-    // Also update the mobile cart count if it exists
-    const mobileCountEl = document.getElementById('mobile-cart-count');
-    
-    const totalQty = this.items.reduce((a,b) => a + b.quantity, 0).toString();
-    if (countEl) countEl.innerText = totalQty;
-    if (mobileCountEl) mobileCountEl.innerText = totalQty;
-    
-    const listEl = document.getElementById('cart-list');
-    
-    if (listEl) {
-      if (this.items.length === 0) {
-        listEl.innerHTML = '<p style="text-align:center; margin-top:2rem; color:#888;">Cart is empty.</p>';
-        return;
-      }
-
-      listEl.innerHTML = this.items.map(item => `
-        <div class="cart-item">
-          <div style="flex:1;">
-            <h4 style="font-size: 0.9rem;">${item.name}</h4>
-            <p style="font-size: 0.75rem; color: #666;">${item.type} | ${item.selectedSize}</p>
-            ${item.selectedColor !== 'Default' ? `<div style="width:12px; height:12px; background:${item.selectedColor}; border-radius:50%; margin-top:4px; border:1px solid #ddd;"></div>` : ''}
-          </div>
-          <div style="display:flex; align-items:center;">
-             <div class="cart-qty-ctrl">
-                <button class="qty-btn" onclick="window.cart.updateQuantity('${item.variantId}', -1)">-</button>
-                <span style="padding:0 8px; font-size:0.9rem;">${item.quantity}</span>
-                <button class="qty-btn" onclick="window.cart.updateQuantity('${item.variantId}', 1)">+</button>
-             </div>
-             <button class="cart-remove" onclick="window.cart.remove('${item.variantId}')">Remove</button>
+    container.innerHTML = this.items.map((item, index) => `
+      <div style="display:flex; gap:1rem; margin-bottom:1.5rem; padding-bottom:1.5rem; border-bottom:1px solid #eee;">
+        <img src="${item.image}" style="width:80px; height:100px; object-fit:cover; background:#f4f4f4;" />
+        <div style="flex:1;">
+          <h4 style="font-family: 'Italiana', serif; margin:0 0 0.5rem 0; font-size:1.1rem;">${item.name}</h4>
+          <p style="margin:0; font-size:0.8rem; color:#666; text-transform:uppercase;">Size: ${item.size} | Color: <span style="display:inline-block; width:12px; height:12px; background:${item.color}; border-radius:50%; border:1px solid #ccc; vertical-align:middle;"></span></p>
+          <p style="margin:0.5rem 0; font-weight:bold; color:#D4AF37;">₹${item.price}</p>
+          
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.5rem;">
+            <span style="font-size:0.9rem; color:#333;">Qty: ${item.quantity}</span>
+            <button class="remove-item-btn" data-index="${index}" style="background:none; border:none; color:#d93025; text-decoration:underline; cursor:pointer; font-size:0.8rem; padding:0;">Remove</button>
           </div>
         </div>
-      `).join('');
-    }
+      </div>
+    `).join('');
+  }
+
+  bindEvents() {
+    document.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      
+      // Close cart if overlay or close button is clicked
+      if (target.classList.contains('overlay') || target.id === 'close-cart') {
+        document.getElementById('cart-sidebar')?.classList.remove('active');
+        document.querySelector('.overlay')?.classList.remove('active');
+      }
+
+      // NEW: Listen for remove button clicks
+      if (target.classList.contains('remove-item-btn')) {
+        const index = parseInt(target.dataset.index || '0');
+        this.remove(index);
+      }
+    });
   }
 }
