@@ -251,3 +251,152 @@
         gap: 1rem !important;
     }
 }
+
+/* =========================================
+   HIGH-END PREMIUM DASHBOARD (HEAVY UI)
+   ========================================= */
+
+/* Set a soft premium background to make the white cards pop */
+#admin-root {
+    background-color: #f4f5f7 !important;
+}
+
+.vg-dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    width: 100%;
+    padding-bottom: 2rem;
+}
+
+/* Heavy, Polished Premium Cards */
+.vg-card {
+    background: #ffffff;
+    border: none !important;
+    border-radius: 24px !important; /* Soft, modern corners */
+    padding: 2.5rem !important; /* Deep, spacious padding */
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02) !important;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.vg-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.06), 0 8px 16px rgba(0, 0, 0, 0.03) !important;
+}
+
+.vg-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.vg-card-title {
+    font-family: 'Manrope', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    color: #111;
+}
+
+/* Row 1: KPI Stats */
+.vg-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+}
+
+.vg-kpi-value {
+    font-size: 3.5rem;
+    font-weight: 300;
+    font-family: 'Manrope', sans-serif;
+    color: #000;
+    letter-spacing: -1.5px;
+    line-height: 1;
+}
+
+/* Premium Pills for Trends */
+.vg-trend {
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 8px 16px;
+    border-radius: 30px;
+    display: flex;
+    align-items: center;
+}
+.vg-trend.up { background: rgba(30, 142, 62, 0.08); color: #1e8e3e; }
+.vg-trend.down { background: rgba(217, 48, 37, 0.08); color: #d93025; }
+
+/* Grid Layouts */
+.vg-middle-row {
+    display: grid;
+    grid-template-columns: 2.5fr 1fr;
+    gap: 2rem;
+}
+
+.vg-bottom-row {
+    display: grid;
+    grid-template-columns: 2.5fr 1fr;
+    gap: 2rem;
+}
+
+/* Chart Details */
+.vg-css-donut {
+    width: 220px; height: 220px;
+    border-radius: 50%;
+    display: flex; justify-content: center; align-items: center;
+    margin: 2rem auto;
+    box-shadow: inset 0 4px 10px rgba(0,0,0,0.1);
+}
+.vg-css-donut::before {
+    content: "";
+    width: 150px; height: 150px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+/* =========================================
+   AGGRESSIVE MOBILE RESPONSIVENESS
+   ========================================= */
+@media (max-width: 1024px) {
+    .vg-middle-row, .vg-bottom-row {
+        grid-template-columns: 1fr; /* Stack everything on tablets */
+    }
+}
+
+@media (max-width: 768px) {
+    .vg-dashboard {
+        gap: 1.2rem;
+    }
+    
+    .vg-kpi-row {
+        grid-template-columns: 1fr; /* Stack KPIs on mobile */
+        gap: 1.2rem;
+    }
+
+    .vg-card {
+        padding: 1.5rem !important; /* Reduce padding slightly for small screens */
+        border-radius: 20px !important;
+    }
+
+    .vg-kpi-value {
+        font-size: 2.8rem;
+    }
+
+    .vg-css-donut {
+        width: 180px; height: 180px;
+    }
+    .vg-css-donut::before {
+        width: 120px; height: 120px;
+    }
+    
+    /* Ensure the recent orders table stays edge-to-edge inside the new heavy card */
+    .admin-table-container {
+        margin-left: -1.5rem !important;
+        margin-right: -1.5rem !important;
+        width: calc(100% + 3rem) !important;
+    }
+}
