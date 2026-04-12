@@ -166,3 +166,88 @@
         gap: 1rem !important;
     }
 }
+
+/* =========================================
+   AGGRESSIVE MOBILE FIXES (DIRECT TARGETING)
+   ========================================= */
+
+@media (max-width: 768px) {
+    /* 1. Prevent the whole screen from swiping left/right accidentally */
+    #admin-root {
+        overflow-x: hidden !important;
+    }
+
+    #admin-root main {
+        padding: 1.5rem 1rem !important; 
+        overflow-x: hidden !important;
+        width: 100vw !important;
+    }
+
+    /* 2. Fix Sliced Titles & Overlapping Buttons */
+    #admin-root .page-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 1.2rem !important;
+        margin-bottom: 2rem !important;
+        height: auto !important; /* Stops text slicing */
+    }
+    
+    #admin-root .page-header h1 {
+        line-height: 1.2 !important;
+        margin: 0 !important;
+        width: 100% !important;
+    }
+
+    #admin-root .page-header .btn {
+        width: 100% !important;
+        text-align: center !important;
+    }
+
+    /* 3. FORCE ALL FORMS TO 1 COLUMN (The core fix for your screenshot) */
+    #admin-root form > div,
+    #admin-root .admin-form,
+    #admin-root form [style*="grid"],
+    #admin-root form [style*="flex"] {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        gap: 1rem !important;
+    }
+
+    /* 4. Keep inputs from bleeding off the edge */
+    #admin-root .input-group,
+    #admin-root .input-group input,
+    #admin-root .input-group select,
+    #admin-root .input-group textarea {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    /* 5. Contain the white panels safely */
+    #admin-root .panel {
+        padding: 1.5rem 1rem !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    /* 6. Pull tables to the edge of the screen */
+    #admin-root .data-table-container {
+        margin-left: -1rem !important; 
+        margin-right: -1rem !important; 
+        width: calc(100% + 2rem) !important;
+        border-radius: 0 !important;
+        border-left: none !important;
+        border-right: none !important;
+    }
+
+    #admin-root .data-table {
+        min-width: 700px !important;
+    }
+
+    /* 7. Stat cards stack cleanly */
+    #admin-root .kpi-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+    }
+}
