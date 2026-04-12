@@ -916,3 +916,88 @@ button[type="submit"]:hover,
 .success-icon { width: 60px; height: 60px; margin-bottom: 1.5rem; }
 .order-ref { background: #f9f9f9; padding: 1rem; border: 1px solid #eee; margin-top: 1rem; width: 100%; }
 
+/* =========================================
+   PREMIUM BUTTON DESIGN SYSTEM
+   ========================================= */
+
+/* Base Button Style */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.8rem 1.8rem;
+  font-family: 'Manrope', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  text-decoration: none;
+  border-radius: 2px;
+}
+
+/* Primary Dark Button */
+.btn-dark {
+  background: #000;
+  color: #fff;
+  border: 1px solid #000;
+}
+.btn-dark:hover {
+  background: #222;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+.btn-dark:disabled {
+  background: #888;
+  border-color: #888;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Secondary Outline Button */
+.btn-outline {
+  background: transparent;
+  color: #000;
+  border: 1px solid #000;
+}
+.btn-outline:hover {
+  background: #000;
+  color: #fff;
+}
+
+/* Action Pills (For Orders, Reviews, Returns) */
+.btn-action {
+  background: #f4f4f4;
+  color: #000;
+  border: 1px solid #eee;
+  padding: 0.5rem 1.2rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 30px; /* Sleek pill shape */
+  letter-spacing: 0.5px;
+}
+.btn-action:hover {
+  background: #000;
+  color: #fff;
+  border-color: #000;
+}
+
+/* Danger/Destructive Pills (For Canceling/Removing) */
+.btn-action-danger {
+  background: #fff;
+  color: #d93025;
+  border: 1px solid #fecaca;
+  padding: 0.5rem 1.2rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 30px;
+  letter-spacing: 0.5px;
+}
+.btn-action-danger:hover {
+  background: #d93025;
+  color: #fff;
+  border-color: #d93025;
+}

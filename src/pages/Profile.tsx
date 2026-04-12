@@ -11,11 +11,9 @@ export default function Profile() {
   const [productsList, setProductsList] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('orders');
   
-  // Responsive State
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Review & Return State
   const [reviewingOrderId, setReviewingOrderId] = useState<string | null>(null);
   const [reviewProductId, setReviewProductId] = useState<string>('');
   const [reviewText, setReviewText] = useState('');
@@ -26,7 +24,6 @@ export default function Profile() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Handle window resize for responsive layout
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 768);
     window.addEventListener('resize', handleResize);
@@ -151,42 +148,24 @@ export default function Profile() {
     showToast('Removed from Wishlist', 'info');
   };
 
-  // Change tab and close sidebar on mobile
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     if (isMobile) setIsSidebarOpen(false);
   };
 
-  // Dynamic Sidebar Styles based on Mobile/Desktop
   const sidebarStyle: React.CSSProperties = isMobile ? {
-    position: 'fixed',
-    top: 0,
-    left: isSidebarOpen ? 0 : '-300px',
-    width: '280px',
-    height: '100vh',
-    background: '#fff',
-    zIndex: 4000,
-    transition: 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    padding: '3rem 2rem',
-    boxShadow: isSidebarOpen ? '4px 0 15px rgba(0,0,0,0.1)' : 'none',
-    overflowY: 'auto'
+    position: 'fixed', top: 0, left: isSidebarOpen ? 0 : '-300px', width: '280px', height: '100vh',
+    background: '#fff', zIndex: 4000, transition: 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    padding: '3rem 2rem', boxShadow: isSidebarOpen ? '4px 0 15px rgba(0,0,0,0.1)' : 'none', overflowY: 'auto'
   } : {
-    border: '1px solid var(--border)',
-    padding: '2rem',
-    background: '#fff',
-    width: '250px',
-    flexShrink: 0
+    border: '1px solid var(--border)', padding: '2rem', background: '#fff', width: '250px', flexShrink: 0
   };
 
   return (
     <main style={{ paddingTop: '120px', minHeight: '80vh', paddingBottom: '6rem' }} className="container">
-      
       {/* Mobile Sidebar Overlay */}
       {isMobile && isSidebarOpen && (
-        <div 
-          onClick={() => setIsSidebarOpen(false)} 
-          style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', zIndex: 3999, backdropFilter: 'blur(2px)' }}
-        />
+        <div onClick={() => setIsSidebarOpen(false)} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', zIndex: 3999, backdropFilter: 'blur(2px)' }} />
       )}
 
       {/* Header Section */}
@@ -195,20 +174,18 @@ export default function Profile() {
           <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3rem)', marginBottom: '0.5rem', textTransform: 'uppercase', fontFamily: 'Italiana, serif' }}>My Account</h1>
           <p style={{ color: '#666', fontSize: '0.95rem', letterSpacing: '1px', wordBreak: 'break-all' }}>{userEmail}</p>
         </div>
-        <button onClick={handleLogout} className="btn" style={{ padding: '0.8rem 2rem', width: isMobile ? '100%' : 'auto' }}>Sign Out</button>
+        <button onClick={handleLogout} className="btn btn-outline" style={{ width: isMobile ? '100%' : 'auto' }}>Sign Out</button>
       </div>
 
-      {/* Mobile Hamburger Button */}
       {isMobile && (
-        <button onClick={() => setIsSidebarOpen(true)} style={{ background: '#000', color: '#fff', border: 'none', padding: '0.8rem 1.5rem', display: 'flex', alignItems: 'center', gap: '0.8rem', cursor: 'pointer', marginBottom: '2rem', textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.8rem', fontWeight: 600 }}>
-          <span style={{ fontSize: '1.2rem' }}>☰</span> Account Menu
+        <button className="btn btn-dark" onClick={() => setIsSidebarOpen(true)} style={{ marginBottom: '2rem', width: '100%' }}>
+          <span style={{ fontSize: '1.2rem', marginRight: '8px' }}>☰</span> Account Menu
         </button>
       )}
 
-      {/* Main Layout (Flexbox) */}
       <div style={{ display: 'flex', gap: isMobile ? '0' : '4rem', alignItems: 'flex-start' }}>
         
-        {/* Sidebar Navigation */}
+        {/* Sidebar */}
         <aside style={sidebarStyle}>
           {isMobile && (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
@@ -232,7 +209,7 @@ export default function Profile() {
               {orders.length === 0 ? (
                 <div style={{ padding: '4rem 2rem', textAlign: 'center', background: '#fafafa', border: '1px solid #eee' }}>
                   <p style={{ color: '#666', marginBottom: '1.5rem' }}>You haven't placed any orders yet.</p>
-                  <button onClick={() => navigate('/shop')} className="btn" style={{ background: '#000', color: '#fff' }}>Explore Collection</button>
+                  <button onClick={() => navigate('/shop')} className="btn btn-dark">Explore Collection</button>
                 </div>
               ) : (
                 orders.map(order => {
@@ -254,14 +231,14 @@ export default function Profile() {
                         </div>
                       </div>
                       
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: '1rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: '1.5rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                           <span style={{ background: isPreShipment ? '#fff3cd' : (isCancelled ? '#fee2e2' : '#e6f4ea'), color: isPreShipment ? '#856404' : (isCancelled ? '#991b1b' : '#1e8e3e'), padding: '6px 12px', borderRadius: '2px', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>
                             {order.status}
                           </span>
                           
                           {isPreShipment && (
-                            <button onClick={() => cancelOrder(order.id)} style={{ background: 'none', border: 'none', color: '#ff4444', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.85rem' }}>Cancel Order</button>
+                            <button onClick={() => cancelOrder(order.id)} className="btn btn-action-danger">Cancel Order</button>
                           )}
                           
                           {order.status === 'Delivered' && (
@@ -269,12 +246,12 @@ export default function Profile() {
                               <button onClick={() => {
                                 setReturningOrderId(returningOrderId === order.id ? null : order.id);
                                 setReviewingOrderId(null);
-                              }} style={{ background: 'none', border: 'none', color: '#000', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.85rem' }}>Request Return</button>
+                              }} className="btn btn-action">Request Return</button>
                               
                               <button onClick={() => {
                                 setReviewingOrderId(reviewingOrderId === order.id ? null : order.id);
                                 setReturningOrderId(null);
-                              }} style={{ background: 'none', border: 'none', color: '#000', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.85rem' }}>Write a Review</button>
+                              }} className="btn btn-action">Write a Review</button>
                             </>
                           )}
                         </div>
@@ -290,8 +267,8 @@ export default function Profile() {
                           <h5 style={{ fontFamily: 'Italiana, serif', fontSize: '1.2rem', marginBottom: '0.5rem' }}>Request a Return</h5>
                           <textarea value={returnReason} onChange={(e) => setReturnReason(e.target.value)} placeholder="Reason for return..." rows={3} style={{ width: '100%', padding: '1rem', border: '1px solid #ddd', outline: 'none', marginBottom: '1rem', resize: 'vertical', fontFamily: 'inherit' }}></textarea>
                           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                            <button onClick={submitReturn} style={{ background: '#000', color: '#fff', padding: '0.8rem 1.5rem', border: 'none', cursor: 'pointer', textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: '1px', fontWeight: 600 }}>Submit</button>
-                            <button onClick={() => setReturningOrderId(null)} style={{ background: 'none', color: '#888', padding: '0.8rem 1.5rem', border: '1px solid #ddd', cursor: 'pointer', textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: '1px' }}>Cancel</button>
+                            <button onClick={submitReturn} className="btn btn-dark">Submit Request</button>
+                            <button onClick={() => setReturningOrderId(null)} className="btn btn-outline">Cancel</button>
                           </div>
                         </div>
                       )}
@@ -315,8 +292,8 @@ export default function Profile() {
                           </div>
                           <textarea value={reviewText} onChange={(e) => setReviewText(e.target.value)} placeholder="Tell us what you loved..." rows={3} style={{ width: '100%', padding: '1rem', border: '1px solid #ddd', outline: 'none', marginBottom: '1rem', resize: 'vertical', fontFamily: 'inherit' }}></textarea>
                           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                            <button onClick={submitReview} style={{ background: '#000', color: '#fff', padding: '0.8rem 1.5rem', border: 'none', cursor: 'pointer', textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: '1px', fontWeight: 600 }}>Submit</button>
-                            <button onClick={() => setReviewingOrderId(null)} style={{ background: 'none', color: '#888', padding: '0.8rem 1.5rem', border: '1px solid #ddd', cursor: 'pointer', textTransform: 'uppercase', fontSize: '0.8rem', letterSpacing: '1px' }}>Cancel</button>
+                            <button onClick={submitReview} className="btn btn-dark">Submit Review</button>
+                            <button onClick={() => setReviewingOrderId(null)} className="btn btn-outline">Cancel</button>
                           </div>
                         </div>
                       )}
@@ -338,9 +315,12 @@ export default function Profile() {
                     <div key={item.id} style={{ border: '1px solid #eee', padding: '1rem', background: '#fff' }}>
                       <img src={item.image} alt={item.name} style={{ width: '100%', height: '250px', objectFit: 'cover', marginBottom: '1rem' }} />
                       <h4 style={{ fontSize: '1rem', fontFamily: 'Italiana, serif' }}>{item.name}</h4>
-                      <p style={{ color: '#D4AF37', fontWeight: 'bold', margin: '0.5rem 0' }}>₹{item.price}</p>
-                      <button onClick={() => navigate('/shop')} style={{ width: '100%', padding: '0.8rem', background: '#000', color: '#fff', border: 'none', cursor: 'pointer', marginBottom: '0.5rem' }}>View Item</button>
-                      <button onClick={() => removeFromWishlist(item.id)} style={{ width: '100%', padding: '0.5rem', background: 'none', color: '#d93025', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Remove</button>
+                      <p style={{ color: '#D4AF37', fontWeight: 'bold', margin: '0.5rem 0 1rem 0' }}>₹{item.price}</p>
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <button onClick={() => navigate('/shop')} className="btn btn-dark" style={{ width: '100%' }}>View Item</button>
+                        <button onClick={() => removeFromWishlist(item.id)} className="btn btn-action-danger" style={{ width: '100%', borderRadius: '2px' }}>Remove</button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -352,7 +332,7 @@ export default function Profile() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <h2 style={{ fontSize: '1.5rem', fontFamily: 'Italiana, serif', margin: 0 }}>Saved Addresses</h2>
-                <button onClick={handleAddAddress} className="btn" style={{ background: '#000', color: '#fff', padding: '0.8rem 1.5rem' }}>+ Add New</button>
+                <button onClick={handleAddAddress} className="btn btn-dark">+ Add New</button>
               </div>
               
               {addresses.length === 0 ? (
@@ -364,7 +344,7 @@ export default function Profile() {
                   {addresses.map((addr, idx) => (
                     <div key={idx} style={{ padding: '1.5rem', border: '1px solid #e5e5e5', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                       <p style={{ margin: 0, color: '#333', lineHeight: 1.6, flex: 1 }}>{addr}</p>
-                      <button onClick={() => removeAddress(idx)} style={{ color: '#ff4444', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.85rem' }}>Remove</button>
+                      <button onClick={() => removeAddress(idx)} className="btn btn-action-danger">Remove</button>
                     </div>
                   ))}
                 </div>

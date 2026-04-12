@@ -23,9 +23,9 @@ export default function App() {
     const isAuthRoute = ['/login', '/signup'].includes(location.pathname.toLowerCase());
 
     useEffect(() => {
-        if (!window.cart) {
-            window.cart = new CartManager();
-            new CheckoutManager(window.cart);
+        if (!(window as any).cart) {
+            (window as any).cart = new CartManager();
+            new CheckoutManager((window as any).cart);
         }
     }, []);
 
