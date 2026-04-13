@@ -7,6 +7,10 @@ export class CheckoutManager {
   private cart: CartManager;
   private orderId: string = '';
   private appliedDiscount: number = 0; 
+  
+  // --- NEW: Shipping State ---
+  private shippingZones: any[] = [];
+  private selectedShipping: any = null;
 
   constructor(cart: CartManager) {
     this.cart = cart;
@@ -23,7 +27,7 @@ export class CheckoutManager {
     );
   }
 
-  open() {
+  async open() {
     const m = this.modal;
     if (!m) return; 
 
@@ -31,8 +35,17 @@ export class CheckoutManager {
     this.orderId = this.generateUUID();
     this.appliedDiscount = 0; 
     
+    // --- NEW: Fetch Shipping Zones on Open ---
+    const { data } = await supabase.from('shipping_zones').select('*').order('rate', { ascending: true });
+    this.shippingZones = data || [];
+    
+    // Default to the cheapest shipping option
+    if (this.shippingZones.length > 0) {
+        this.selectedShipping = this.shippingZones[0]; 
+    }
+
     this.resetModalState();
-    this.renderSummary();
+    this.renderSummary(); // This will now draw the shipping options
     
     m.classList.add('active');
     document.getElementById('cart-sidebar')?.classList.remove('active');
@@ -45,33 +58,79 @@ export class CheckoutManager {
 
   renderSummary() {
     const summaryEl = document.getElementById('checkout-summary');
-    if (summaryEl) {
-      const subtotal = this.cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-      const discountAmount = Math.floor(subtotal * (this.appliedDiscount / 100));
-      const totalAmount = subtotal - discountAmount;
+    if (!summaryEl) return;
 
-      summaryEl.innerHTML = this.cart.items.map(i => `
-        <div style="display:flex; justify-content:space-between; margin-bottom: 0.5rem; font-size: 0.9rem; color: #444;">
-          <span>${i.name} (x${i.quantity})</span>
-          <span>₹${(i.price * i.quantity).toLocaleString()}</span>
-        </div>
-      `).join('') + `
-        ${this.appliedDiscount > 0 ? `
-        <div style="display:flex; justify-content:space-between; margin-top: 1rem; color: #1e8e3e; font-weight: 600; font-size: 0.9rem;">
-          <span>Discount (${this.appliedDiscount}%)</span><span>- ₹${discountAmount.toLocaleString()}</span>
-        </div>` : ''}
-        <div style="display:flex; justify-content:space-between; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #ddd; font-weight: 700; font-size: 1.1rem; color: #000;">
-          <span>Total:</span><span>₹${totalAmount.toLocaleString()}</span>
-        </div>
-      `;
+    const subtotal = this.cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const discountAmount = Math.floor(subtotal * (this.appliedDiscount / 100));
+    
+    // --- NEW: Shipping Cost Math ---
+    const shippingCost = this.selectedShipping ? Number(this.selectedShipping.rate) : 0;
+    const totalAmount = subtotal - discountAmount + shippingCost;
+
+    // 1. Draw the items
+    let html = this.cart.items.map(i => `
+      <div style="display:flex; justify-content:space-between; margin-bottom: 0.5rem; font-size: 0.9rem; color: #444;">
+        <span>${i.name} (x${i.quantity})</span>
+        <span>₹${(i.price * i.quantity).toLocaleString()}</span>
+      </div>
+    `).join('');
+
+    // 2. Draw the Shipping Options dynamically from Database
+    if (this.shippingZones.length > 0) {
+        html += `
+          <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px dashed #ddd;">
+            <h4 style="font-size: 0.75rem; text-transform: uppercase; color: #888; font-weight: 700; letter-spacing: 1px; margin-bottom: 1rem;">Delivery Method</h4>
+            <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+              ${this.shippingZones.map(zone => `
+                <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 1rem; border: 1px solid ${this.selectedShipping?.id === zone.id ? '#000' : '#e5e5e5'}; background: ${this.selectedShipping?.id === zone.id ? '#fafafa' : '#fff'}; border-radius: 8px; transition: all 0.2s;">
+                  <div style="display: flex; align-items: center; gap: 12px;">
+                    <input type="radio" name="shipping" value="${zone.id}" ${this.selectedShipping?.id === zone.id ? 'checked' : ''} class="shipping-radio" style="accent-color: #000; width: 16px; height: 16px;">
+                    <div>
+                      <span style="display: block; font-weight: 700; font-size: 0.9rem; color: #111;">${zone.zone_name}</span>
+                      <span style="font-size: 0.75rem; color: #888;">${zone.estimated_days}</span>
+                    </div>
+                  </div>
+                  <span style="font-weight: 800; color: #000; font-size: 0.95rem;">${zone.rate === 0 ? 'FREE' : `₹${zone.rate}`}</span>
+                </label>
+              `).join('')}
+            </div>
+          </div>
+        `;
     }
+
+    // 3. Draw the Totals
+    html += `
+      ${this.appliedDiscount > 0 ? `
+      <div style="display:flex; justify-content:space-between; margin-top: 1.5rem; color: #1e8e3e; font-weight: 600; font-size: 0.9rem;">
+        <span>Discount (${this.appliedDiscount}%)</span><span>- ₹${discountAmount.toLocaleString()}</span>
+      </div>` : ''}
+      
+      <div style="display:flex; justify-content:space-between; margin-top: ${this.appliedDiscount > 0 ? '0.5rem' : '1.5rem'}; color: #666; font-size: 0.9rem;">
+        <span>Shipping</span><span>${shippingCost === 0 ? 'FREE' : `+ ₹${shippingCost}`}</span>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #ddd; font-weight: 800; font-size: 1.2rem; color: #000;">
+        <span>Total:</span><span>₹${totalAmount.toLocaleString()}</span>
+      </div>
+    `;
+
+    summaryEl.innerHTML = html;
+
+    // --- NEW: Bind Radio Button Logic ---
+    const radios = summaryEl.querySelectorAll('.shipping-radio');
+    radios.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            const target = e.target as HTMLInputElement;
+            this.selectedShipping = this.shippingZones.find(z => z.id === target.value);
+            this.renderSummary(); // Re-calculate total instantly when clicked
+        });
+    });
   }
 
   bindEvents() {
     document.addEventListener('click', async (e) => {
       const target = e.target as HTMLElement;
       
-      // --- INTERCEPT CHECKOUT CLICK ---
       if (target.closest('#trigger-checkout')) { 
         e.preventDefault(); 
         await this.handleCheckoutGate();
@@ -122,7 +181,6 @@ export class CheckoutManager {
     });
   }
 
-  // --- NEW: STRICT AUTHENTICATION GATE ---
   async handleCheckoutGate() {
     if (this.cart.items.length === 0) {
       return showToast("Your cart is empty.", "error");
@@ -130,19 +188,15 @@ export class CheckoutManager {
 
     const { data: { session } } = await supabase.auth.getSession();
     
-    // If not logged in, force redirect to clean React router /login
     if (!session) {
-      // FIX: Ensure BOTH possible cart IDs are forcefully closed!
       document.getElementById('cart-modal')?.classList.remove('active');
       document.getElementById('cart-sidebar')?.classList.remove('active');
-      document.body.style.overflow = 'auto'; // Restore scroll
-      
+      document.body.style.overflow = 'auto'; 
       showToast("Please log in to proceed to checkout.", "info");
-      window.location.href = '/login'; // Correct clean route
+      window.location.href = '/login'; 
       return;
     }
 
-    // User is verified, open the checkout modal safely
     this.open();
   }
 
@@ -154,7 +208,6 @@ export class CheckoutManager {
     const form = document.getElementById('checkout-form') as HTMLFormElement;
     if (!form) return;
 
-    // --- SECONDARY SAFETY CHECK ---
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       showToast("Session expired. Please log in again.", "error");
@@ -170,12 +223,13 @@ export class CheckoutManager {
     const nameInput = document.getElementById('c-name') as HTMLInputElement;
     const name = nameInput ? nameInput.value : session.user.user_metadata?.full_name || 'Premium Member';
     
+    // Calculate final total including shipping
     const subtotal = this.cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const totalAmount = subtotal - Math.floor(subtotal * (this.appliedDiscount / 100));
+    const shippingCost = this.selectedShipping ? Number(this.selectedShipping.rate) : 0;
+    const totalAmount = subtotal - Math.floor(subtotal * (this.appliedDiscount / 100)) + shippingCost;
 
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Force strict user_id linking to prevent database errors
     const userId = session.user.id;
 
     const { error } = await supabase.from('orders').insert({
@@ -195,7 +249,6 @@ export class CheckoutManager {
       return;
     }
 
-    // Clear cart memory and refresh the visual UI
     this.cart.items = [];
     if (typeof (this.cart as any).saveCart === 'function') (this.cart as any).saveCart();
     if (typeof (this.cart as any).render === 'function') (this.cart as any).render();
