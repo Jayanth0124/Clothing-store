@@ -95,8 +95,57 @@ export default function Home() {
   return (
     <main>
       
-      {/* CSS for Responsive Modal & Carousel */}
+      {/* CSS for Premium Buttons, Responsive Modal & Carousel */}
       <style>{`
+        /* HERO BUTTON FIXES */
+        .hero-btn-group {
+          display: flex;
+          gap: 1.5rem;
+          justify-content: center;
+          align-items: center;
+          flex-wrap: wrap;
+          margin-top: 2rem;
+        }
+        .hero-btn {
+          padding: 1.2rem 2.5rem;
+          font-family: 'Manrope', sans-serif;
+          font-size: 0.85rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 2px;
+          text-decoration: none;
+          border-radius: 4px;
+          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+          min-width: 200px;
+          text-align: center;
+        }
+        .hero-btn-primary {
+          background: transparent;
+          color: #fff;
+          border: 1px solid rgba(255,255,255,0.8);
+        }
+        .hero-btn-primary:hover {
+          background: #fff;
+          color: #000;
+          border-color: #fff;
+          transform: translateY(-3px);
+          box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        .hero-btn-secondary {
+          background: rgba(255,255,255,0.1);
+          color: #fff;
+          border: 1px solid transparent;
+          backdrop-filter: blur(5px);
+        }
+        .hero-btn-secondary:hover {
+          background: rgba(255,255,255,0.2);
+          color: #fff;
+          border-color: rgba(255,255,255,0.3);
+          transform: translateY(-3px);
+          box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        /* PDP MODAL STYLES */
         .vg-pdp-modal-content {
           background: #fff; width: 100%; max-width: 1000px; max-height: 90vh;
           overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; position: relative;
@@ -117,6 +166,8 @@ export default function Home() {
           .vg-pdp-modal-content { grid-template-columns: 1fr; max-height: 85vh; }
           .vg-pdp-carousel { min-height: 400px; height: 400px; }
           .vg-pdp-details { padding: 2rem; }
+          .hero-btn-group { flex-direction: column; width: 100%; padding: 0 2rem; }
+          .hero-btn { width: 100%; }
         }
       `}</style>
 
@@ -125,9 +176,10 @@ export default function Home() {
         <p style={{ margin: '2rem 0', letterSpacing: '2px', textTransform: 'uppercase', fontSize: '0.9rem', color: '#fff' }}>
           Premium Menswear • Italian Craftsmanship
         </p>
-        <div>
-          <Link to="/shop" className="btn" style={{ borderColor: '#fff', color: '#fff', marginRight: '1rem' }}>Pick Your Style</Link>
-          <Link to="/contact" className="btn" style={{ borderColor: 'transparent', color: '#fff' }}>Contact Us</Link>
+        {/* NEW STYLED BUTTONS */}
+        <div className="hero-btn-group">
+          <Link to="/shop" className="hero-btn hero-btn-primary">Pick Your Style</Link>
+          <Link to="/contact" className="hero-btn hero-btn-secondary">Contact Us</Link>
         </div>
       </header>
 
