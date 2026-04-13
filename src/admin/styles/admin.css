@@ -400,3 +400,49 @@
         width: calc(100% + 3rem) !important;
     }
 }
+
+#admin-root .action-btn {
+    background: transparent;
+    border: 1px solid #e5e5e5;
+    padding: 0.65rem 1.1rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    color: #111;
+    text-decoration: none;
+    transition: all 0.28s ease;
+    font-family: 'Manrope', sans-serif;
+    min-width: 90px;
+}
+
+/* EDIT BUTTON */
+#admin-root .edit-btn {
+    background: #fff;
+    color: #111;
+}
+
+#admin-root .edit-btn:hover {
+    background: #000;
+    color: #fff;
+    border-color: #000;
+}
+
+/* DELETE BUTTON */
+#admin-root .delete-btn {
+    background: #fff;
+    color: #b42318 !important;
+    border-color: #f1d5d2;
+}
+
+#admin-root .delete-btn:hover {
+    background: #b42318;
+    color: #fff !important;
+    border-color: #b42318;
+}
+
+/* CLICK EFFECT */
+#admin-root .action-btn:active {
+    transform: scale(0.97);
+}
