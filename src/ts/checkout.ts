@@ -71,9 +71,10 @@ export class CheckoutManager {
     document.addEventListener('click', async (e) => {
       const target = e.target as HTMLElement;
       
+      // --- INTERCEPT CHECKOUT CLICK ---
       if (target.closest('#trigger-checkout')) { 
         e.preventDefault(); 
-        this.open(); 
+        await this.handleCheckoutGate();
       }
       
       if (target.closest('#close-checkout')) { 
@@ -121,6 +122,26 @@ export class CheckoutManager {
     });
   }
 
+  // --- NEW: STRICT AUTHENTICATION GATE ---
+  async handleCheckoutGate() {
+    if (this.cart.items.length === 0) {
+      return showToast("Your cart is empty.", "error");
+    }
+
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    // If not logged in, force redirect to clean React router /login
+    if (!session) {
+      document.getElementById('cart-sidebar')?.classList.remove('active');
+      showToast("Please log in to proceed to checkout.", "info");
+      window.location.href = '/login'; // Correct clean route, NO .html
+      return;
+    }
+
+    // User is verified, open the checkout modal safely
+    this.open();
+  }
+
   async processSimulatedPayment() {
     if (this.cart.items.length === 0) {
       return showToast("Your cart is empty.", "error");
@@ -129,21 +150,29 @@ export class CheckoutManager {
     const form = document.getElementById('checkout-form') as HTMLFormElement;
     if (!form) return;
 
+    // --- SECONDARY SAFETY CHECK ---
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      showToast("Session expired. Please log in again.", "error");
+      window.location.href = '/login';
+      return;
+    }
+
     const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
     submitBtn.innerText = 'Processing Secure Payment...';
     submitBtn.disabled = true;
     submitBtn.classList.add('btn-processing');
 
     const nameInput = document.getElementById('c-name') as HTMLInputElement;
-    const name = nameInput ? nameInput.value : 'Guest';
+    const name = nameInput ? nameInput.value : session.user.user_metadata?.full_name || 'Premium Member';
     
     const subtotal = this.cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const totalAmount = subtotal - Math.floor(subtotal * (this.appliedDiscount / 100));
 
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    const { data: { session } } = await supabase.auth.getSession();
-    const userId = session?.user?.id || null;
+    // Force strict user_id linking to prevent database errors
+    const userId = session.user.id;
 
     const { error } = await supabase.from('orders').insert({
       id: this.orderId,
@@ -158,12 +187,11 @@ export class CheckoutManager {
       submitBtn.innerText = 'Confirm & Pay';
       submitBtn.disabled = false;
       submitBtn.classList.remove('btn-processing');
-      showToast('Error saving order to database. Please try again.', 'error');
+      showToast('Error securely saving your order. Please try again.', 'error');
       return;
     }
 
-    // --- CRITICAL CART FIX ---
-    // Force the cart to empty its memory and refresh the visual UI
+    // Clear cart memory and refresh the visual UI
     this.cart.items = [];
     if (typeof (this.cart as any).saveCart === 'function') (this.cart as any).saveCart();
     if (typeof (this.cart as any).render === 'function') (this.cart as any).render();
@@ -201,15 +229,13 @@ export class CheckoutManager {
       gsap.fromTo('.success-icon svg', { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.6, ease: 'back.out(1.7)' });
       gsap.fromTo('.success-screen h2, .success-screen p, .success-screen div, .success-screen button', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, stagger: 0.1 });
 
-      // --- CRITICAL OVERLAY FIX ---
       document.getElementById('btn-continue-shopping')?.addEventListener('click', () => {
-        // Destroy all overlays, unlock body scrolling, and cleanly route to shop
         document.body.style.overflow = 'auto';
         this.modal?.classList.remove('active');
         
         setTimeout(() => {
           this.resetModalState();
-          window.location.href = '/shop'; // Hard route to cleanly reset state
+          window.location.href = '/shop'; 
         }, 300); 
       });
     }
