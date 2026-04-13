@@ -9,14 +9,15 @@ export default function Contact() {
     footer_address: 'Loading...',
     footer_phone: 'Loading...',
     footer_hours: 'Loading...',
-    contact_text: 'Loading...'
+    contact_text: 'Loading...',
+    formsubmit_email: '' // Added dynamic state
   });
 
   const [formData, setFormData] = useState({ name: '', email: '', message: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    window.scrollTo(0, 0); // Always start at the top of the page
+    window.scrollTo(0, 0); 
     
     async function fetchSettings() {
       const { data, error } = await supabase.from('site_settings').select('*').eq('id', 1).single();
@@ -29,18 +30,44 @@ export default function Contact() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (!formData.name || !formData.email || !formData.message) {
       return showToast('Please fill out all fields.', 'error');
     }
 
+    if (!settings.formsubmit_email) {
+      return showToast('Contact form is currently offline. Missing destination email.', 'error');
+    }
+
     setIsSubmitting(true);
     
-    // Simulate sending email/message delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    setIsSubmitting(false);
-    setFormData({ name: '', email: '', message: '' });
-    showToast('Your message has been sent successfully. We will be in touch soon.', 'success');
+    try {
+      // 1. Send data to FormSubmit API in the background (No Redirects!)
+      const response = await fetch(`https://formsubmit.co/ajax/${settings.formsubmit_email}`, {
+        method: "POST",
+        headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            message: formData.message,
+            _subject: "New Inquiry from Vito Ginglies Storefront" // Beautiful email subject
+        })
+      });
+
+      if (response.ok) {
+        setFormData({ name: '', email: '', message: '' });
+        showToast('Your message has been sent successfully. We will be in touch soon.', 'success');
+      } else {
+        showToast('Failed to send message. Please try again.', 'error');
+      }
+    } catch (err) {
+      showToast('Network error. Please check your connection.', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

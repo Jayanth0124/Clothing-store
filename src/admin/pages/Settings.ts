@@ -49,6 +49,13 @@ export class SettingsPage {
           </div>
 
           <h3 style="font-family: 'Italiana', serif; font-size: 1.5rem; margin-top: 3rem; margin-bottom: 1.5rem; border-bottom: 1px solid #eee; padding-bottom: 0.5rem;">Contact Page Specifics</h3>
+          
+          <div class="input-group" style="margin-bottom: 1.5rem;">
+            <label style="color: #d4af37;">Form Delivery Email (FormSubmit Target)</label>
+            <input type="email" id="set-form-email" placeholder="Where should customer messages be sent?">
+            <span style="font-size: 0.75rem; color: #888; display: block; margin-top: 4px;">Important: The first time you use a new email, FormSubmit will send an activation link to it.</span>
+          </div>
+
           <div class="input-group">
             <label>Contact Page Intro Message</label>
             <textarea id="set-contact-text" rows="3" placeholder="Enter the welcoming text for your contact page..."></textarea>
@@ -79,6 +86,8 @@ export class SettingsPage {
       (document.getElementById('set-phone') as HTMLInputElement).value = data.footer_phone || '';
       (document.getElementById('set-hours') as HTMLInputElement).value = data.footer_hours || '';
       (document.getElementById('set-contact-text') as HTMLTextAreaElement).value = data.contact_text || '';
+      // LOAD NEW EMAIL
+      (document.getElementById('set-form-email') as HTMLInputElement).value = data.formsubmit_email || '';
     } else {
       showToast('Could not load settings from database.', 'error');
     }
@@ -102,6 +111,8 @@ export class SettingsPage {
         footer_phone: (document.getElementById('set-phone') as HTMLInputElement).value,
         footer_hours: (document.getElementById('set-hours') as HTMLInputElement).value,
         contact_text: (document.getElementById('set-contact-text') as HTMLTextAreaElement).value,
+        // SAVE NEW EMAIL
+        formsubmit_email: (document.getElementById('set-form-email') as HTMLInputElement).value,
       };
 
       const { error } = await supabase.from('site_settings').update(payload).eq('id', 1);
