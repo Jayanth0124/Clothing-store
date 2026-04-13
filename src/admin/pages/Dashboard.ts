@@ -74,7 +74,7 @@ export class DashboardPage {
             <div id="status-bar-chart" style="display: flex; align-items: flex-end; justify-content: space-between; height: 250px; margin-top: 2rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
               </div>
             
-            <div id="status-labels" style="display: flex; justify-content: space-between; margin-top: 1rem; font-size: 0.7rem; color: #888; text-transform: uppercase; font-weight: 700;">
+            <div id="status-labels" style="display: flex; justify-content: space-between; margin-top: 1rem; font-size: 0.65rem; color: #888; text-transform: uppercase; font-weight: 700;">
                </div>
           </div>
 
@@ -113,22 +113,22 @@ export class DashboardPage {
   }
 
   async fetchDashboardData() {
-    // 1. Fetch real orders from Supabase
+    // 1. Fetch real data from Supabase
     const { data: orders } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
 
     if (!orders) return;
 
-    // --- KPI CALCULATION ---
-    const totalRev = orders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+    // --- REAL-TIME REVENUE MATH (STRICT FILTERING) ---
+    // Only count money you actually keep (ignore cancelled and refunded)
+    const validOrders = orders.filter(o => o.status !== 'Cancelled' && o.status !== 'Refunded');
+    
+    const totalRev = validOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
     document.getElementById('kpi-revenue')!.innerText = `₹${totalRev.toLocaleString()}`;
     document.getElementById('kpi-orders')!.innerText = orders.length.toString();
     
-    // 🔥 REAL-TIME CUSTOMERS FIX: Count unique customer names from the orders
+    // Count unique customers based on names
     const uniqueCustomers = new Set(
-      orders
-        .map(o => o.customer_name)
-        .filter(name => name) // Remove any empty names
-        .map(name => name.trim().toLowerCase()) // Normalize names so "John" and "john " count as 1
+      orders.map(o => o.customer_name).filter(name => name).map(name => name.trim().toLowerCase()) 
     );
     document.getElementById('kpi-customers')!.innerText = uniqueCustomers.size.toString();
 
@@ -141,24 +141,21 @@ export class DashboardPage {
           let color = 'badge-gray';
           if (val === 'Paid' || val === 'Delivered') color = 'badge-green';
           if (val === 'Processing') color = 'badge-gray'; 
-          if (val === 'Cancelled') color = 'badge-gray'; 
+          if (val === 'Cancelled' || val === 'Refunded') color = 'badge-gray'; 
           return `<span class="badge ${color}">${val}</span>`;
       }},
       { key: 'total_amount', label: 'Total', render: (val) => `₹${val.toLocaleString()}` }
     ];
     
-    // 🔥 ACTIONS COLUMN FIX: We removed the 3rd argument () => '' so DataGrid won't render an Actions header
     const grid = new DataGrid(columns, recentOrders);
     const wrapper = document.getElementById('recent-orders-wrapper');
     if (wrapper) wrapper.innerHTML = grid.render();
 
-    // ... (Keep the rest of your chart/bar graph code exactly the same here) ...
-
-    // --- REAL-TIME SALES CHART (SVG) ---
+    // --- REAL-TIME SALES CHART (ONLY VALID REVENUE) ---
     const monthsRev = [0, 0, 0, 0, 0, 0]; 
     const now = new Date();
     
-    orders.forEach(o => {
+    validOrders.forEach(o => {
       const orderDate = new Date(o.created_at);
       const monthDiff = (now.getFullYear() - orderDate.getFullYear()) * 12 + (now.getMonth() - orderDate.getMonth());
       if (monthDiff >= 0 && monthDiff < 6) {
@@ -179,60 +176,46 @@ export class DashboardPage {
 
     // --- REAL-TIME ORDER STATUS BAR GRAPH ---
     const statusCounts: Record<string, number> = {
-      'Pending': 0,
-      'Paid': 0,
-      'Process': 0, // Shortened for 'Processing'
-      'Deliver': 0, // Shortened for 'Delivered'
-      'Cancel': 0   // Shortened for 'Cancelled'
+      'Pending': 0, 'Paid': 0, 'Process': 0, 'Deliver': 0, 'Cancel': 0, 'Refund': 0
     };
 
-    // Count the exact statuses from the database
     orders.forEach(o => {
       let st = o.status || 'Pending';
       if (st === 'Processing') st = 'Process';
       if (st === 'Delivered') st = 'Deliver';
       if (st === 'Cancelled') st = 'Cancel';
+      if (st === 'Refunded') st = 'Refund';
       
-      if (statusCounts[st] !== undefined) {
-        statusCounts[st]++;
-      } else {
-        statusCounts[st] = 1;
-      }
+      if (statusCounts[st] !== undefined) statusCounts[st]++;
+      else statusCounts[st] = 1;
     });
 
-    const maxStatusCount = Math.max(...Object.values(statusCounts), 1); // Prevent divide by zero
+    const maxStatusCount = Math.max(...Object.values(statusCounts), 1); 
 
-    // Color code mapping to match Vito Ginglies luxury theme
     const chartColors: Record<string, string> = {
-      'Pending': '#e0e0e0',
-      'Paid': '#1e8e3e',
-      'Process': '#d4af37', // Gold
-      'Deliver': '#000000',
-      'Cancel': '#d93025'   // Red
+      'Pending': '#e0e0e0', 'Paid': '#1e8e3e', 'Process': '#d4af37',
+      'Deliver': '#000000', 'Cancel': '#d93025', 'Refund': '#888888'
     };
 
     let barsHtml = '';
     let labelsHtml = '';
 
-    // Generate the HTML for the bars based on the exact counts
     Object.keys(statusCounts).forEach(status => {
       const count = statusCounts[status];
-      // Calculate height percentage. Minimum 2% so empty categories still show a tiny line
       const heightPct = Math.max(Math.round((count / maxStatusCount) * 100), 2); 
       const color = chartColors[status] || '#000';
 
       barsHtml += `
-        <div style="display: flex; flex-direction: column; justify-content: flex-end; align-items: center; width: 16%; height: 100%;">
-          <span style="font-size: 0.85rem; font-weight: 800; margin-bottom: 8px; color: #111;">${count}</span>
-          <div style="width: 100%; height: ${heightPct}%; background: ${color}; border-radius: 6px 6px 0 0; box-shadow: 0 4px 10px rgba(0,0,0,0.1);"></div>
+        <div style="display: flex; flex-direction: column; justify-content: flex-end; align-items: center; flex: 1; height: 100%; margin: 0 4px;">
+          <span style="font-size: 0.75rem; font-weight: 800; margin-bottom: 8px; color: #111;">${count}</span>
+          <div style="width: 100%; height: ${heightPct}%; background: ${color}; border-radius: 4px 4px 0 0; box-shadow: 0 4px 10px rgba(0,0,0,0.1);"></div>
         </div>
       `;
-      labelsHtml += `<span style="text-align: center; width: 16%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${status}</span>`;
+      labelsHtml += `<span style="text-align: center; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${status}</span>`;
     });
 
     const barChartEl = document.getElementById('status-bar-chart');
     const labelsEl = document.getElementById('status-labels');
-    
     if (barChartEl) barChartEl.innerHTML = barsHtml;
     if (labelsEl) labelsEl.innerHTML = labelsHtml;
   }

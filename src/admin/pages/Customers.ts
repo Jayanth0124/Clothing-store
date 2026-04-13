@@ -32,6 +32,7 @@ export class CustomersPage {
   }
 
   async fetchCustomers() {
+    // 1. Fetch all orders to build the customer profiles dynamically
     const { data: orders, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
     const wrapper = document.getElementById('customers-table-wrapper');
     if (!wrapper) return;
@@ -57,7 +58,11 @@ export class CustomersPage {
         };
       }
       customerMap[nameKey].orders += 1;
-      customerMap[nameKey].totalSpent += (order.total_amount || 0);
+      
+      // Do not count refunded/cancelled orders in Lifetime Value!
+      if (order.status !== 'Cancelled' && order.status !== 'Refunded') {
+        customerMap[nameKey].totalSpent += (order.total_amount || 0);
+      }
     });
 
     this.customerList = Object.values(customerMap);
@@ -126,7 +131,7 @@ export class CustomersPage {
       o.customer_name && o.customer_name.trim().toLowerCase() === customerName.trim().toLowerCase()
     );
 
-    // --- EXACT LOGIC: VIP only if strictly > 10 orders ---
+    // EXACT VIP LOGIC: Strictly more than 10 orders
     const isVIP = customer.orders > 10;
     const badgeText = isVIP ? 'VIP Customer' : 'Standard Customer';
     const badgeColor = isVIP ? '#d4af37' : '#888'; 
@@ -162,18 +167,25 @@ export class CustomersPage {
 
           <h3 style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #eee;">Order History</h3>
           <div style="max-height: 250px; overflow-y: auto; padding-right: 10px;">
-            ${history.map(order => `
+            ${history.map(order => {
+              // Apply specific muted colors for returned/cancelled orders
+              let statusColor = '#888';
+              let statusBg = '#f4f4f4';
+              if (order.status === 'Paid' || order.status === 'Delivered') { statusColor = '#1e8e3e'; statusBg = 'rgba(30,142,62,0.1)'; }
+              if (order.status === 'Cancelled' || order.status === 'Refunded') { statusColor = '#d93025'; statusBg = 'rgba(217,48,37,0.1)'; }
+              
+              return `
               <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; border-bottom: 1px solid #f4f4f4;">
                 <div>
                   <div style="font-weight: 600; font-size: 0.9rem; color: #111; margin-bottom: 4px;">Ref: ${order.id.substring(0,8).toUpperCase()}</div>
                   <div style="font-size: 0.75rem; color: #888;">${new Date(order.created_at).toLocaleDateString()}</div>
                 </div>
                 <div style="text-align: right;">
-                  <div style="font-weight: 700; font-size: 0.95rem; color: #000; margin-bottom: 4px;">₹${(order.total_amount || 0).toLocaleString()}</div>
-                  <span style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; color: ${order.status === 'Paid' || order.status === 'Delivered' ? '#1e8e3e' : '#888'}; background: #f4f4f4; padding: 3px 8px; border-radius: 4px;">${order.status || 'Pending'}</span>
+                  <div style="font-weight: 700; font-size: 0.95rem; color: ${order.status === 'Cancelled' || order.status === 'Refunded' ? '#888' : '#000'}; text-decoration: ${order.status === 'Cancelled' || order.status === 'Refunded' ? 'line-through' : 'none'}; margin-bottom: 4px;">₹${(order.total_amount || 0).toLocaleString()}</div>
+                  <span style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: ${statusColor}; background: ${statusBg}; padding: 3px 8px; border-radius: 4px;">${order.status || 'Pending'}</span>
                 </div>
               </div>
-            `).join('')}
+            `}).join('')}
           </div>
 
         </div>

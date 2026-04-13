@@ -6,6 +6,7 @@ import { showToast, showConfirm, showPrompt } from '../lib/ui';
 export default function Profile() {
   const [userEmail, setUserEmail] = useState<string>('Loading...');
   const [orders, setOrders] = useState<any[]>([]);
+  const [returns, setReturns] = useState<any[]>([]); // New state for tracking return requests
   const [wishlist, setWishlist] = useState<any[]>([]);
   const [addresses, setAddresses] = useState<string[]>([]);
   const [productsList, setProductsList] = useState<any[]>([]);
@@ -40,8 +41,18 @@ export default function Profile() {
       
       setUserEmail(session.user.user_metadata?.full_name || session.user.email || 'Premium Member');
 
+      // Fetch Orders
       const { data: orderData } = await supabase.from('orders').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false });
-      if (orderData) setOrders(orderData);
+      if (orderData) {
+        setOrders(orderData);
+        
+        // Fetch Returns linked to these orders
+        const orderIds = orderData.map(o => o.id);
+        if (orderIds.length > 0) {
+          const { data: returnData } = await supabase.from('returns').select('*').in('order_id', orderIds);
+          if (returnData) setReturns(returnData);
+        }
+      }
 
       const { data: prodData } = await supabase.from('products').select('id, name').eq('status', 'Published');
       if (prodData) setProductsList(prodData);
@@ -99,16 +110,17 @@ export default function Profile() {
     if (!returnReason.trim()) return showToast("Please provide a reason for your return.", "error");
 
     const { data: { session } } = await supabase.auth.getSession();
-    const { error } = await supabase.from('returns').insert({
+    const { data: newReturn, error } = await supabase.from('returns').insert({
       order_id: returningOrderId,
       customer_name: session?.user?.user_metadata?.full_name || session?.user?.email,
       type: 'Return',
       reason: returnReason,
       status: 'Requested'
-    });
+    }).select().single();
 
-    if (!error) {
+    if (!error && newReturn) {
       showToast('Return request submitted. We will contact you shortly.');
+      setReturns([...returns, newReturn]); // Instantly show it in UI
       setReturningOrderId(null);
       setReturnReason('');
     } else {
@@ -163,12 +175,10 @@ export default function Profile() {
 
   return (
     <main style={{ paddingTop: '120px', minHeight: '80vh', paddingBottom: '6rem' }} className="container">
-      {/* Mobile Sidebar Overlay */}
       {isMobile && isSidebarOpen && (
         <div onClick={() => setIsSidebarOpen(false)} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', zIndex: 3999, backdropFilter: 'blur(2px)' }} />
       )}
 
-      {/* Header Section */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'flex-end', flexDirection: isMobile ? 'column' : 'row', gap: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '2rem', marginBottom: '3rem' }}>
         <div>
           <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3rem)', marginBottom: '0.5rem', textTransform: 'uppercase', fontFamily: 'Italiana, serif' }}>My Account</h1>
@@ -185,7 +195,6 @@ export default function Profile() {
 
       <div style={{ display: 'flex', gap: isMobile ? '0' : '4rem', alignItems: 'flex-start' }}>
         
-        {/* Sidebar */}
         <aside style={sidebarStyle}>
           {isMobile && (
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
@@ -201,7 +210,6 @@ export default function Profile() {
           </ul>
         </aside>
 
-        {/* Main Content Area */}
         <section style={{ width: '100%', flex: 1 }}>
           {activeTab === 'orders' && (
             <div>
@@ -215,25 +223,31 @@ export default function Profile() {
                 orders.map(order => {
                   const isPreShipment = ['Pending', 'Paid', 'Processing'].includes(order.status);
                   const isCancelled = order.status === 'Cancelled';
+                  const isRefunded = order.status === 'Refunded';
                   
+                  // Check if there is an active return request for this specific order
+                  const activeReturn = returns.find(r => r.order_id === order.id);
+
                   return (
                     <div key={order.id} style={{ border: '1px solid #e5e5e5', padding: isMobile ? '1.5rem 1rem' : '1.5rem', marginBottom: '2rem', background: '#fff', width: '100%' }}>
+                      
                       <div style={{ display: 'flex', justifyContent: 'space-between', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '1rem' : '0', borderBottom: '1px solid #f4f4f4', paddingBottom: '1.5rem', marginBottom: '1.5rem' }}>
                         <div>
                           <span style={{ fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Order Ref</span>
-                          <h4 style={{ fontFamily: 'monospace', fontSize: '1.1rem', marginTop: '0.2rem' }} title={order.id}>
+                          <h4 style={{ fontFamily: 'monospace', fontSize: '1.1rem', marginTop: '0.2rem' }}>
                             {order.id.substring(0, 8).toUpperCase()}
                           </h4>
                         </div>
                         <div style={{ textAlign: isMobile ? 'left' : 'right' }}>
-                          <span style={{ fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Date</span>
+                          <span style={{ fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Date Placed</span>
                           <p style={{ marginTop: '0.2rem', fontWeight: 600 }}>{new Date(order.created_at).toLocaleDateString()}</p>
                         </div>
                       </div>
                       
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', flexDirection: isMobile ? 'column' : 'row', gap: '1.5rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                          <span style={{ background: isPreShipment ? '#fff3cd' : (isCancelled ? '#fee2e2' : '#e6f4ea'), color: isPreShipment ? '#856404' : (isCancelled ? '#991b1b' : '#1e8e3e'), padding: '6px 12px', borderRadius: '2px', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                          
+                          <span style={{ background: isPreShipment ? '#fff3cd' : (isCancelled || isRefunded ? '#fee2e2' : '#e6f4ea'), color: isPreShipment ? '#856404' : (isCancelled || isRefunded ? '#991b1b' : '#1e8e3e'), padding: '6px 12px', borderRadius: '2px', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>
                             {order.status}
                           </span>
                           
@@ -241,25 +255,40 @@ export default function Profile() {
                             <button onClick={() => cancelOrder(order.id)} className="btn btn-action-danger">Cancel Order</button>
                           )}
                           
+                          {/* Only show "Request Return" if Delivered AND no return request exists yet */}
+                          {order.status === 'Delivered' && !activeReturn && (
+                            <button onClick={() => {
+                              setReturningOrderId(returningOrderId === order.id ? null : order.id);
+                              setReviewingOrderId(null);
+                            }} className="btn btn-action">Request Return</button>
+                          )}
+                          
                           {order.status === 'Delivered' && (
-                            <>
-                              <button onClick={() => {
-                                setReturningOrderId(returningOrderId === order.id ? null : order.id);
-                                setReviewingOrderId(null);
-                              }} className="btn btn-action">Request Return</button>
-                              
-                              <button onClick={() => {
-                                setReviewingOrderId(reviewingOrderId === order.id ? null : order.id);
-                                setReturningOrderId(null);
-                              }} className="btn btn-action">Write a Review</button>
-                            </>
+                            <button onClick={() => {
+                              setReviewingOrderId(reviewingOrderId === order.id ? null : order.id);
+                              setReturningOrderId(null);
+                            }} className="btn btn-action">Write a Review</button>
                           )}
                         </div>
                         <div style={{ textAlign: isMobile ? 'left' : 'right', width: isMobile ? '100%' : 'auto', paddingTop: isMobile ? '1rem' : '0', borderTop: isMobile ? '1px solid #eee' : 'none' }}>
                           <span style={{ fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Total</span>
-                          <p style={{ fontSize: '1.5rem', fontWeight: 600, marginTop: '0.2rem' }}>₹{order.total_amount?.toLocaleString()}</p>
+                          <p style={{ fontSize: '1.5rem', fontWeight: 600, marginTop: '0.2rem', textDecoration: isCancelled || isRefunded ? 'line-through' : 'none', color: isCancelled || isRefunded ? '#888' : '#000' }}>₹{order.total_amount?.toLocaleString()}</p>
                         </div>
                       </div>
+
+                      {/* --- LIVE RETURN STATUS TRACKER --- */}
+                      {activeReturn && (
+                        <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#fafafa', borderLeft: `3px solid ${activeReturn.status === 'Refunded' ? '#1e8e3e' : (activeReturn.status === 'Rejected' ? '#d93025' : '#d4af37')}` }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '1px' }}>Return Status</span>
+                            <span style={{ fontSize: '0.75rem', color: '#888' }}>{new Date(activeReturn.created_at).toLocaleDateString()}</span>
+                          </div>
+                          <p style={{ fontSize: '1rem', fontWeight: 600, margin: '0.5rem 0', color: activeReturn.status === 'Refunded' ? '#1e8e3e' : (activeReturn.status === 'Rejected' ? '#d93025' : '#d4af37') }}>
+                            {activeReturn.status === 'Requested' ? 'Pending Review' : activeReturn.status}
+                          </p>
+                          <p style={{ fontSize: '0.85rem', color: '#666', fontStyle: 'italic', margin: 0 }}>"{activeReturn.reason}"</p>
+                        </div>
+                      )}
 
                       {/* INLINE RETURN FORM */}
                       {returningOrderId === order.id && (
