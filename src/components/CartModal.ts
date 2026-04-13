@@ -1,5 +1,4 @@
 import { CartStore } from '../core/CartStore';
-import { formatOrder } from '../utils/WhatsAppFormatter';
 
 export class CartModal {
   private modal: HTMLElement;
@@ -27,8 +26,19 @@ export class CartModal {
       this.close();
     });
 
-    document.getElementById('checkout-btn')?.addEventListener('click', () => {
-      this.handleCheckout();
+    // --- Global Smart Listener ---
+    document.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      
+      // 1. Close the cart if the user clicks ANY navigation link <a>
+      if (target.closest('a') && this.modal.classList.contains('active')) {
+        this.close();
+      }
+
+      // 2. Close the cart if the user clicks the dark background overlay
+      if (target === this.modal) {
+        this.close();
+      }
     });
   }
 
@@ -57,18 +67,13 @@ export class CartModal {
     });
   }
 
-  private handleCheckout() {
-    if (this.store.getItems().length === 0) return;
-    
-    const name = prompt("Please enter your Full Name:");
-    const address = prompt("Please enter your Shipping Address:");
-    
-    if (name && address) {
-      const msg = formatOrder(this.store.getItems(), { name, address });
-      window.open(`https://wa.me/7207288496?text=${msg}`, '_blank');
-    }
+  public open() { 
+    this.modal.classList.add('active'); 
+    document.body.style.overflow = 'hidden'; // Stop background scrolling
   }
-
-  public open() { this.modal.classList.add('active'); }
-  public close() { this.modal.classList.remove('active'); }
+  
+  public close() { 
+    this.modal.classList.remove('active'); 
+    document.body.style.overflow = 'auto'; // Restore background scrolling
+  }
 }

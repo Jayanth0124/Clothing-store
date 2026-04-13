@@ -29,11 +29,21 @@ export default function App() {
         }
     }, []);
 
+    // --- NEW: THE BULLETPROOF ROUTE WATCHER ---
+    // Every time the URL changes, this guarantees the cart and modals are closed
+    useEffect(() => {
+        document.getElementById('cart-sidebar')?.classList.remove('active');
+        document.getElementById('checkout-modal')?.classList.remove('active');
+        document.querySelector('.overlay')?.classList.remove('active');
+        document.body.style.overflow = 'auto'; // Always unlock scrolling on new pages
+    }, [location.pathname]); 
+
     const closeCart = (e: React.MouseEvent) => {
         e.preventDefault();
         document.getElementById('cart-sidebar')?.classList.remove('active');
         document.getElementById('checkout-modal')?.classList.remove('active');
         document.querySelector('.overlay')?.classList.remove('active');
+        document.body.style.overflow = 'auto'; // Ensure scroll is restored on manual close
     };
 
     if (isAdminRoute) {
@@ -93,7 +103,7 @@ export default function App() {
                     <div className="form-group">
                         <label>Shipping Address</label><textarea id="c-address" rows={3} required></textarea>
                     </div>
-                    {/* ... Address text area above this ... */}
+                    
                     <div style={{ background: '#f9f9f9', padding: '1.5rem', marginBottom: '2rem', border: '1px solid #eee' }}>
                         <div style={{ display: 'flex', gap: '10px', marginBottom: '1.5rem' }}>
                             <input type="text" id="promo-code-input" placeholder="Have a Promo Code?" style={{ flex: 1, padding: '0.8rem', border: '1px solid #ddd', borderRadius: 0, fontFamily: 'inherit', outline: 'none', textTransform: 'uppercase' }} />

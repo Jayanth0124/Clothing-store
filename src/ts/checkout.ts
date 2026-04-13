@@ -132,9 +132,13 @@ export class CheckoutManager {
     
     // If not logged in, force redirect to clean React router /login
     if (!session) {
+      // FIX: Ensure BOTH possible cart IDs are forcefully closed!
+      document.getElementById('cart-modal')?.classList.remove('active');
       document.getElementById('cart-sidebar')?.classList.remove('active');
+      document.body.style.overflow = 'auto'; // Restore scroll
+      
       showToast("Please log in to proceed to checkout.", "info");
-      window.location.href = '/login'; // Correct clean route, NO .html
+      window.location.href = '/login'; // Correct clean route
       return;
     }
 
