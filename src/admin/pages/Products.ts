@@ -50,8 +50,8 @@ export class ProductsPage {
             </div>
             
             <div class="input-group" style="grid-column: span 2;">
-              <label>Main Image URL</label>
-              <input type="url" id="p-img" required>
+              <label>Image URLs (Comma separated for swipe gallery)</label>
+              <input type="text" id="p-img" required placeholder="https://img1.jpg, https://img2.jpg">
             </div>
           </div>
           <div style="margin-top: 2rem; display: flex; gap: 1rem;">
@@ -120,7 +120,7 @@ export class ProductsPage {
         type: getVal('p-type'),
         price: Number(getVal('p-price')),
         original_price: getVal('p-orig') ? Number(getVal('p-orig')) : null,
-        image: getVal('p-img'),
+        image: getVal('p-img'), // Saves the raw comma-separated string to the DB
         sizes: sizesArray.length ? sizesArray : ['Standard'],
         colors: colorsArray.length ? colorsArray : ['Default'],
         status: 'Published'
@@ -135,7 +135,6 @@ export class ProductsPage {
         if (error) {
           alert("Error creating: " + error.message);
         } else if (newProduct) {
-          // GENERATE VARIANTS FOR EVERY SIZE AND COLOR COMBO
           const variantsToInsert = [];
           for (const color of payload.colors) {
             for (const size of payload.sizes) {
@@ -179,7 +178,6 @@ export class ProductsPage {
           this.editModeId = data.id;
           (document.getElementById('p-name') as HTMLInputElement).value = data.name;
           
-          // Ensure options are loaded before setting value
           await this.loadLiveCategories();
           (document.getElementById('p-type') as HTMLSelectElement).value = data.type;
           
@@ -203,7 +201,11 @@ export class ProductsPage {
     if (error || !data) return;
 
     const columns: ColumnDef[] = [
-      { key: 'image', label: 'Item', render: (val, row) => `<div style="display:flex; align-items:center; gap:1rem;"><img src="${val}" style="width:50px; height:60px; object-fit:cover; border:1px solid #eee;"><strong>${row.name}</strong></div>` },
+      { key: 'image', label: 'Item', render: (val, row) => {
+          // Safety: Only grab the first image URL for the admin thumbnail
+          const firstImage = val ? val.split(',')[0].trim() : '';
+          return `<div style="display:flex; align-items:center; gap:1rem;"><img src="${firstImage}" style="width:50px; height:60px; object-fit:cover; border:1px solid #eee;"><strong>${row.name}</strong></div>`;
+      }},
       { key: 'type', label: 'Category', render: (val) => `<span class="badge badge-gray">${val}</span>` },
       { key: 'price', label: 'Price', render: (val) => `₹${val}` }
     ];
