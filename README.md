@@ -62,11 +62,46 @@ Here is a look inside the custom Admin Command Center:
 
 ## 💻 Tech Stack
 
-* **Frontend:** React, TypeScript, React Router
+* **Frontend:** React, TypeScript, Vite
 * **Backend / Database:** Supabase (PostgreSQL, Auth, Row Level Security)
 * **Styling:** Custom CSS (Glassmorphism, Responsive Grid Architecture)
 * **Hosting:** Netlify
 
 ---
 
-*Designed and Developed by Donavalli Jayanth*
+## 🚀 Quick Start & Installation
+
+To run this project locally, you will need Node.js installed and a free [Supabase](https://supabase.com/) account.
+
+### 1. Clone & Install
+Install the required dependencies:
+```bash
+npm install
+```
+
+### 2. Database Setup (Supabase)
+This project includes a master SQL file to instantly generate the exact database architecture needed for the Command Center to function perfectly.
+1. Create a new project in your Supabase dashboard.
+2. Navigate to the **SQL Editor** tab.
+3. Open the `supabase_schema.sql` file located in the root of this repository.
+4. Copy all the contents, paste them into the Supabase SQL Editor, and click **Run**. 
+
+### 3. Environment Variables (API Keys)
+You need to link your local code to your new Supabase backend securely.
+1. Create a file named `.env` in the root directory of the project.
+2. Add your unique Supabase keys (found in your Supabase Dashboard under Settings > API):
+```env
+VITE_SUPABASE_URL=your_supabase_project_url_here
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+
+(Note: Never commit your .env file to version control. It is already included in the .gitignore.)
+
+4. Launch the Application
+Start the local development server:
+
+```bash
+npm run dev
+```
+The storefront will be available at http://localhost:5173. To access the Admin Command Center, navigate to http://localhost:5173/admin.
+
+**Designed and Developed by** [Donavalli Jayanth](https://jayanth.site)
