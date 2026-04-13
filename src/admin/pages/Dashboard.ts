@@ -13,7 +13,7 @@ export class DashboardPage {
     this.container.innerHTML = `
       <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
         <h1>Dashboard Overview</h1>
-        <button class="btn btn-primary" id="btn-refresh-dash" style="background: #000; color: #fff; padding: 0.8rem 1.5rem; cursor: pointer; border: none; text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">Refresh Data</button>
+        <button class="btn btn-primary" id="btn-refresh-dash" style="background: #000; color: #fff; padding: 0.8rem 1.5rem; cursor: pointer; border: none; border-radius: 8px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">Refresh Data</button>
       </div>
 
       <div class="vg-dashboard">
@@ -22,11 +22,10 @@ export class DashboardPage {
           <div class="vg-card">
             <div class="vg-card-header">
               <span class="vg-card-title">Total Revenue</span>
-              <span style="color: #d4af37;">₹</span>
+              <span style="color: #d4af37; font-weight: bold;">₹</span>
             </div>
             <div style="display: flex; align-items: flex-end; gap: 1rem;">
               <div class="vg-kpi-value" id="kpi-revenue">₹0</div>
-              <span class="vg-trend up" id="kpi-rev-trend">--</span>
             </div>
           </div>
           
@@ -37,7 +36,6 @@ export class DashboardPage {
             </div>
             <div style="display: flex; align-items: flex-end; gap: 1rem;">
               <div class="vg-kpi-value" id="kpi-orders">0</div>
-              <span class="vg-trend up" id="kpi-ord-trend">--</span>
             </div>
           </div>
 
@@ -53,6 +51,7 @@ export class DashboardPage {
         </div>
 
         <div class="vg-middle-row">
+          
           <div class="vg-card" style="min-height: 400px;">
             <div class="vg-card-header">
               <span class="vg-card-title">Sales Overview (Last 6 Months)</span>
@@ -62,38 +61,39 @@ export class DashboardPage {
             </div>
             <div id="dynamic-chart-container" style="width: 100%; height: 250px; border-left: 1px solid #eee; border-bottom: 1px solid #eee; margin-top: 2rem; position: relative;">
                 <svg width="100%" height="100%" viewBox="0 0 500 200" preserveAspectRatio="none">
-                    <path id="realtime-svg-path" d="M0,200 L500,200" fill="none" stroke="#000" stroke-width="3" />
+                    <path id="realtime-svg-path" d="M0,200 L500,200" fill="none" stroke="#000" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
             </div>
           </div>
 
           <div class="vg-card">
             <div class="vg-card-header">
-              <span class="vg-card-title">Traffic by Source</span>
+              <span class="vg-card-title">Orders by Status</span>
             </div>
-            <div id="traffic-container" style="display: flex; flex-direction: column; gap: 1.5rem; margin-top: 2rem;">
+            
+            <div id="status-bar-chart" style="display: flex; align-items: flex-end; justify-content: space-between; height: 250px; margin-top: 2rem; padding-bottom: 1rem; border-bottom: 1px solid #eee;">
               </div>
+            
+            <div id="status-labels" style="display: flex; justify-content: space-between; margin-top: 1rem; font-size: 0.7rem; color: #888; text-transform: uppercase; font-weight: 700;">
+               </div>
           </div>
+
         </div>
 
-        <div class="vg-bottom-row" style="grid-template-columns: 2.5fr 1fr;">
-          <div class="vg-card">
-            <div class="vg-card-header">
-              <span class="vg-card-title">Recent Orders</span>
-            </div>
-            <div class="admin-table-container" style="margin-top: 0; border: none;">
-              <div id="recent-orders-wrapper">Loading orders...</div>
-            </div>
+        <div class="vg-card" style="margin-bottom: 2rem;">
+          <div class="vg-card-header">
+            <span class="vg-card-title">Recent Orders</span>
           </div>
-
-          <div class="vg-card">
-            <div class="vg-card-header">
-              <span class="vg-card-title">Location</span>
-            </div>
-            <div id="realtime-donut" class="vg-css-donut" style="background: conic-gradient(#000 0% 100%);"></div>
+          <div class="admin-table-container" style="margin-top: 0; border: none;">
             
-            <div id="donut-labels" style="display: flex; justify-content: center; gap: 2rem; font-size: 0.75rem; color: #888; text-transform: uppercase; margin-top: 1rem;">
-               </div>
+            <style>
+              #recent-orders-wrapper table th:last-child,
+              #recent-orders-wrapper table td:last-child {
+                display: none !important;
+              }
+            </style>
+            
+            <div id="recent-orders-wrapper">Loading orders...</div>
           </div>
         </div>
 
@@ -113,9 +113,8 @@ export class DashboardPage {
   }
 
   async fetchDashboardData() {
-    // 1. Fetch real data from Supabase
+    // 1. Fetch real orders from Supabase
     const { data: orders } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
-    const { count: customersCount } = await supabase.from('customers').select('*', { count: 'exact', head: true });
 
     if (!orders) return;
 
@@ -123,99 +122,118 @@ export class DashboardPage {
     const totalRev = orders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
     document.getElementById('kpi-revenue')!.innerText = `₹${totalRev.toLocaleString()}`;
     document.getElementById('kpi-orders')!.innerText = orders.length.toString();
-    if (customersCount !== null) {
-      document.getElementById('kpi-customers')!.innerText = customersCount.toString();
-    }
+    
+    // 🔥 REAL-TIME CUSTOMERS FIX: Count unique customer names from the orders
+    const uniqueCustomers = new Set(
+      orders
+        .map(o => o.customer_name)
+        .filter(name => name) // Remove any empty names
+        .map(name => name.trim().toLowerCase()) // Normalize names so "John" and "john " count as 1
+    );
+    document.getElementById('kpi-customers')!.innerText = uniqueCustomers.size.toString();
 
     // --- RECENT ORDERS DATAGRID ---
     const recentOrders = orders.slice(0, 5);
     const columns: ColumnDef[] = [
-      { key: 'id', label: 'Order ID', render: (val) => `<span style="font-family: monospace;">${val.substring(0,8)}</span>` },
+      { key: 'id', label: 'Order Ref', render: (val) => `<span style="font-family: monospace; font-weight: 600;">${val.substring(0,8).toUpperCase()}</span>` },
       { key: 'customer_name', label: 'Customer' },
       { key: 'status', label: 'Status', render: (val) => {
           let color = 'badge-gray';
           if (val === 'Paid' || val === 'Delivered') color = 'badge-green';
+          if (val === 'Processing') color = 'badge-gray'; 
+          if (val === 'Cancelled') color = 'badge-gray'; 
           return `<span class="badge ${color}">${val}</span>`;
       }},
       { key: 'total_amount', label: 'Total', render: (val) => `₹${val.toLocaleString()}` }
     ];
-    const grid = new DataGrid(columns, recentOrders, () => ``);
-    document.getElementById('recent-orders-wrapper')!.innerHTML = grid.render();
-
-    // --- REAL-TIME LOCATION DONUT CHART ---
-    // Scans order data to see if it's Domestic (India) or International
-    let domesticCount = 0;
-    let intlCount = 0;
-    orders.forEach(o => {
-      const addr = (o.shipping_address || o.address || '').toLowerCase();
-      if (addr.includes('india') || addr.includes('hyderabad') || addr.includes('ap') || addr.includes('telangana')) {
-        domesticCount++;
-      } else {
-        intlCount++;
-      }
-    });
     
-    // Fallback if no addresses are found to prevent NaN
-    if (domesticCount === 0 && intlCount === 0) domesticCount = 1; 
-    const totalLocations = domesticCount + intlCount;
-    const domPct = Math.round((domesticCount / totalLocations) * 100);
-    const intlPct = 100 - domPct;
+    // 🔥 ACTIONS COLUMN FIX: We removed the 3rd argument () => '' so DataGrid won't render an Actions header
+    const grid = new DataGrid(columns, recentOrders);
+    const wrapper = document.getElementById('recent-orders-wrapper');
+    if (wrapper) wrapper.innerHTML = grid.render();
 
-    const donut = document.getElementById('realtime-donut');
-    if (donut) donut.style.background = `conic-gradient(#000 0% ${domPct}%, #d4af37 ${domPct}% 100%)`;
-    
-    document.getElementById('donut-labels')!.innerHTML = `
-      <span style="display: flex; align-items: center; gap: 5px;"><div style="width: 8px; height: 8px; background: #000;"></div> DOM (${domPct}%)</span>
-      <span style="display: flex; align-items: center; gap: 5px;"><div style="width: 8px; height: 8px; background: #d4af37;"></div> INTL (${intlPct}%)</span>
-    `;
+    // ... (Keep the rest of your chart/bar graph code exactly the same here) ...
 
-    // --- REAL-TIME SALES CHART (MATH TO SVG) ---
-    // Groups orders by month and generates an SVG line
-    const monthsRev = [0, 0, 0, 0, 0, 0]; // Last 6 months
+    // --- REAL-TIME SALES CHART (SVG) ---
+    const monthsRev = [0, 0, 0, 0, 0, 0]; 
     const now = new Date();
     
     orders.forEach(o => {
       const orderDate = new Date(o.created_at);
       const monthDiff = (now.getFullYear() - orderDate.getFullYear()) * 12 + (now.getMonth() - orderDate.getMonth());
       if (monthDiff >= 0 && monthDiff < 6) {
-        monthsRev[5 - monthDiff] += (o.total_amount || 0); // Reverse so [0] is oldest, [5] is newest
+        monthsRev[5 - monthDiff] += (o.total_amount || 0); 
       }
     });
 
-    const maxRev = Math.max(...monthsRev, 1000); // Minimum scale of 1000 to prevent flatline
-    // SVG viewBox is 500 wide, 200 high. (Y=0 is top, Y=200 is bottom).
+    const maxRev = Math.max(...monthsRev, 1000); 
     const points = monthsRev.map((rev, index) => {
-      const x = (index / 5) * 500; // evenly space 6 points
-      const y = 200 - ((rev / maxRev) * 170); // Max height 170 to leave padding at top
+      const x = (index / 5) * 500; 
+      const y = 200 - ((rev / maxRev) * 170); 
       return `${x},${y}`;
     });
 
-    // Create a smooth or straight line path
     const pathString = `M0,200 L${points.join(' L')}`;
     const svgPath = document.getElementById('realtime-svg-path');
     if (svgPath) svgPath.setAttribute('d', pathString);
 
-    // --- TRAFFIC SOURCES (Simulated Realism) ---
-    // Unless you have Google Analytics hooked to Supabase, this must be simulated based on order counts.
-    // We will base it dynamically on your total order count so it changes as you grow.
-    const directPct = Math.min(40 + (orders.length % 10), 100);
-    const igPct = 30;
-    const goPct = 20;
-    const fbPct = 100 - directPct - igPct - goPct;
+    // --- REAL-TIME ORDER STATUS BAR GRAPH ---
+    const statusCounts: Record<string, number> = {
+      'Pending': 0,
+      'Paid': 0,
+      'Process': 0, // Shortened for 'Processing'
+      'Deliver': 0, // Shortened for 'Delivered'
+      'Cancel': 0   // Shortened for 'Cancelled'
+    };
 
-    document.getElementById('traffic-container')!.innerHTML = [
-      { name: 'Direct', val: directPct, color: '#000' },
-      { name: 'Instagram', val: igPct, color: '#333' },
-      { name: 'Google', val: goPct, color: '#d4af37' },
-      { name: 'Facebook', val: Math.max(fbPct, 0), color: '#ccc' }
-    ].map(src => `
-      <div style="display: flex; align-items: center; justify-content: space-between;">
-        <span style="font-size: 0.85rem; font-weight: 600;">${src.name}</span>
-        <div style="flex: 1; margin: 0 1rem; height: 4px; background: #f4f4f4;">
-          <div style="width: ${src.val}%; height: 100%; background: ${src.color}; transition: width 1s ease;"></div>
+    // Count the exact statuses from the database
+    orders.forEach(o => {
+      let st = o.status || 'Pending';
+      if (st === 'Processing') st = 'Process';
+      if (st === 'Delivered') st = 'Deliver';
+      if (st === 'Cancelled') st = 'Cancel';
+      
+      if (statusCounts[st] !== undefined) {
+        statusCounts[st]++;
+      } else {
+        statusCounts[st] = 1;
+      }
+    });
+
+    const maxStatusCount = Math.max(...Object.values(statusCounts), 1); // Prevent divide by zero
+
+    // Color code mapping to match Vito Ginglies luxury theme
+    const chartColors: Record<string, string> = {
+      'Pending': '#e0e0e0',
+      'Paid': '#1e8e3e',
+      'Process': '#d4af37', // Gold
+      'Deliver': '#000000',
+      'Cancel': '#d93025'   // Red
+    };
+
+    let barsHtml = '';
+    let labelsHtml = '';
+
+    // Generate the HTML for the bars based on the exact counts
+    Object.keys(statusCounts).forEach(status => {
+      const count = statusCounts[status];
+      // Calculate height percentage. Minimum 2% so empty categories still show a tiny line
+      const heightPct = Math.max(Math.round((count / maxStatusCount) * 100), 2); 
+      const color = chartColors[status] || '#000';
+
+      barsHtml += `
+        <div style="display: flex; flex-direction: column; justify-content: flex-end; align-items: center; width: 16%; height: 100%;">
+          <span style="font-size: 0.85rem; font-weight: 800; margin-bottom: 8px; color: #111;">${count}</span>
+          <div style="width: 100%; height: ${heightPct}%; background: ${color}; border-radius: 6px 6px 0 0; box-shadow: 0 4px 10px rgba(0,0,0,0.1);"></div>
         </div>
-        <span style="font-size: 0.75rem; color: #888;">${src.val}%</span>
-      </div>
-    `).join('');
+      `;
+      labelsHtml += `<span style="text-align: center; width: 16%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${status}</span>`;
+    });
+
+    const barChartEl = document.getElementById('status-bar-chart');
+    const labelsEl = document.getElementById('status-labels');
+    
+    if (barChartEl) barChartEl.innerHTML = barsHtml;
+    if (labelsEl) labelsEl.innerHTML = labelsHtml;
   }
 }

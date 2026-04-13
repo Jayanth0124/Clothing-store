@@ -23,13 +23,13 @@ export default function Home() {
         .limit(4);
       if (products) setFeaturedProducts(products);
 
-      // 2. Fetch ONLY Approved Reviews
+      // 2. Fetch ONLY Featured & Approved Reviews from Database
       const { data: reviews } = await supabase
         .from('reviews')
         .select('*, products(name)')
-        .eq('status', 'Approved') // <-- CRITICAL FIX: Only show approved reviews
-        .order('created_at', { ascending: false })
-        .limit(4);
+        .eq('status', 'Approved') 
+        .eq('is_featured', true) // CRITICAL: Only pulls featured reviews
+        .order('created_at', { ascending: false });
       if (reviews) setLiveReviews(reviews);
     }
     fetchData();
@@ -165,31 +165,7 @@ export default function Home() {
               </div>
             ))
           ) : (
-            <>
-              {/* Fallback Static Reviews if DB is empty or no approved reviews */}
-              <div className="testimonial-card" style={{ border: '1px solid #eee', padding: '2rem', background: '#fafafa' }}>
-                <div className="stars" style={{ color: '#D4AF37', marginBottom: '1rem', fontSize: '1.2rem', letterSpacing: '2px' }}>★★★★★</div>
-                <p className="testimonial-text" style={{ fontStyle: 'italic', marginBottom: '1.5rem', lineHeight: 1.6, color: '#333' }}>"The fabric weight is unlike anything I've worn. It feels substantial yet incredibly soft. A masterpiece of design."</p>
-                <div className="testimonial-profile" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div className="profile-avatar" style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>A</div>
-                  <div className="profile-info" style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span className="profile-name" style={{ fontWeight: 600, fontSize: '0.9rem', color: '#000' }}>Akshar Ram</span>
-                    <span className="profile-status" style={{ fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Verified Customer</span>
-                  </div>
-                </div>
-              </div>
-              <div className="testimonial-card" style={{ border: '1px solid #eee', padding: '2rem', background: '#fafafa' }}>
-                <div className="stars" style={{ color: '#D4AF37', marginBottom: '1rem', fontSize: '1.2rem', letterSpacing: '2px' }}>★★★★★</div>
-                <p className="testimonial-text" style={{ fontStyle: 'italic', marginBottom: '1.5rem', lineHeight: 1.6, color: '#333' }}>"Pure Premium Stuff and I loved it, must purchase"</p>
-                <div className="testimonial-profile" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div className="profile-avatar" style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>E</div>
-                  <div className="profile-info" style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span className="profile-name" style={{ fontWeight: 600, fontSize: '0.9rem', color: '#000' }}>Eswar</span>
-                    <span className="profile-status" style={{ fontSize: '0.75rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>Verified Customer</span>
-                  </div>
-                </div>
-              </div>
-            </>
+             <p style={{ textAlign: 'center', width: '100%', color: '#888', gridColumn: '1 / -1' }}>No featured reviews available at this time.</p>
           )}
         </div>
       </section>
