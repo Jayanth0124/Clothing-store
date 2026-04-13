@@ -4,7 +4,8 @@ export const checkAdminAuth = async (): Promise<any> => {
   const { data: { session }, error } = await supabase.auth.getSession();
   
   if (error || !session) {
-    window.location.href = '/login.html';
+    // FIX: Clean React Router path. No .html!
+    window.location.href = '/login'; 
     return null;
   }
 

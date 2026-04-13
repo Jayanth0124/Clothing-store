@@ -4,7 +4,6 @@ export const initAuth = () => {
   const loginForm = document.getElementById('login-form') as HTMLFormElement;
   const signupForm = document.getElementById('signup-form') as HTMLFormElement;
 
-  // --- UNIVERSAL LOGIN ---
   if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -20,17 +19,15 @@ export const initAuth = () => {
         alert(error.message);
         if(btn) btn.innerText = 'Sign In';
       } else {
-        // ROLE-BASED ROUTING
         if (data.user?.email === 'admin@vito.com') {
-          window.location.href = '/admin.html';
+          window.location.href = '/admin'; // FIX: Clean path
         } else {
-          window.location.href = '/'; // Normal users go to the shop
+          window.location.href = '/'; 
         }
       }
     });
   }
 
-  // --- SIGNUP LOGIC (NORMAL USERS) ---
   if (signupForm) {
     signupForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -47,7 +44,7 @@ export const initAuth = () => {
         if(btn) btn.innerText = 'Create Account';
       } else {
         alert('Welcome to Vito Ginglies! Your account has been created.');
-        window.location.href = '/login.html'; // Redirect to login after signup
+        window.location.href = '/login'; // FIX: Clean path
       }
     });
   }
