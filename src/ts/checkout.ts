@@ -7,8 +7,6 @@ export class CheckoutManager {
   private cart: CartManager;
   private orderId: string = '';
   private appliedDiscount: number = 0; 
-  
-  // --- NEW: Shipping State ---
   private shippingZones: any[] = [];
   private selectedShipping: any = null;
 
@@ -35,17 +33,15 @@ export class CheckoutManager {
     this.orderId = this.generateUUID();
     this.appliedDiscount = 0; 
     
-    // --- NEW: Fetch Shipping Zones on Open ---
     const { data } = await supabase.from('shipping_zones').select('*').order('rate', { ascending: true });
     this.shippingZones = data || [];
     
-    // Default to the cheapest shipping option
     if (this.shippingZones.length > 0) {
         this.selectedShipping = this.shippingZones[0]; 
     }
 
     this.resetModalState();
-    this.renderSummary(); // This will now draw the shipping options
+    this.renderSummary(); 
     
     m.classList.add('active');
     document.getElementById('cart-sidebar')?.classList.remove('active');
@@ -62,12 +58,9 @@ export class CheckoutManager {
 
     const subtotal = this.cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const discountAmount = Math.floor(subtotal * (this.appliedDiscount / 100));
-    
-    // --- NEW: Shipping Cost Math ---
     const shippingCost = this.selectedShipping ? Number(this.selectedShipping.rate) : 0;
     const totalAmount = subtotal - discountAmount + shippingCost;
 
-    // 1. Draw the items
     let html = this.cart.items.map(i => `
       <div style="display:flex; justify-content:space-between; margin-bottom: 0.5rem; font-size: 0.9rem; color: #444;">
         <span>${i.name} (x${i.quantity})</span>
@@ -75,7 +68,6 @@ export class CheckoutManager {
       </div>
     `).join('');
 
-    // 2. Draw the Shipping Options dynamically from Database
     if (this.shippingZones.length > 0) {
         html += `
           <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px dashed #ddd;">
@@ -98,7 +90,6 @@ export class CheckoutManager {
         `;
     }
 
-    // 3. Draw the Totals
     html += `
       ${this.appliedDiscount > 0 ? `
       <div style="display:flex; justify-content:space-between; margin-top: 1.5rem; color: #1e8e3e; font-weight: 600; font-size: 0.9rem;">
@@ -116,13 +107,12 @@ export class CheckoutManager {
 
     summaryEl.innerHTML = html;
 
-    // --- NEW: Bind Radio Button Logic ---
     const radios = summaryEl.querySelectorAll('.shipping-radio');
     radios.forEach(radio => {
         radio.addEventListener('change', (e) => {
             const target = e.target as HTMLInputElement;
             this.selectedShipping = this.shippingZones.find(z => z.id === target.value);
-            this.renderSummary(); // Re-calculate total instantly when clicked
+            this.renderSummary(); 
         });
     });
   }
@@ -135,7 +125,6 @@ export class CheckoutManager {
         e.preventDefault(); 
         await this.handleCheckoutGate();
       }
-      
       if (target.closest('#close-checkout')) { 
         e.preventDefault(); 
         this.modal?.classList.remove('active'); 
@@ -145,19 +134,11 @@ export class CheckoutManager {
         e.preventDefault();
         const codeInput = document.getElementById('promo-code-input') as HTMLInputElement;
         if (!codeInput) return;
-
         const code = codeInput.value.toUpperCase().trim();
         if (!code) return;
-        
         target.innerText = '...';
         
-        const { data, error } = await supabase
-          .from('coupons')
-          .select('*')
-          .eq('code', code)
-          .eq('is_active', true)
-          .single();
-        
+        const { data, error } = await supabase.from('coupons').select('*').eq('code', code).eq('is_active', true).single();
         if (data && !error) {
           this.appliedDiscount = data.value;
           this.renderSummary();
@@ -166,7 +147,7 @@ export class CheckoutManager {
           codeInput.disabled = true;
           showToast(`Promo Code Applied: ${this.appliedDiscount}% OFF`, 'success');
         } else {
-          showToast('Invalid or expired promo code.', 'error');
+          showToast('Invalid promo code.', 'error');
           target.innerText = 'Apply';
         }
       }
@@ -182,9 +163,7 @@ export class CheckoutManager {
   }
 
   async handleCheckoutGate() {
-    if (this.cart.items.length === 0) {
-      return showToast("Your cart is empty.", "error");
-    }
+    if (this.cart.items.length === 0) return showToast("Your cart is empty.", "error");
 
     const { data: { session } } = await supabase.auth.getSession();
     
@@ -196,46 +175,44 @@ export class CheckoutManager {
       window.location.href = '/login'; 
       return;
     }
-
     this.open();
   }
 
   async processSimulatedPayment() {
-    if (this.cart.items.length === 0) {
-      return showToast("Your cart is empty.", "error");
-    }
+    if (this.cart.items.length === 0) return showToast("Your cart is empty.", "error");
 
     const form = document.getElementById('checkout-form') as HTMLFormElement;
     if (!form) return;
 
+    // --- SECURITY CHECK & EMAIL CAPTURE ---
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    if (!session || !session.user || !session.user.email) {
       showToast("Session expired. Please log in again.", "error");
       window.location.href = '/login';
       return;
     }
 
     const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
-    submitBtn.innerText = 'Processing Secure Payment...';
+    // VISUAL VERIFICATION: If you don't see this text, your browser is using a cached file!
+    submitBtn.innerText = 'Verifying User & Processing...';
     submitBtn.disabled = true;
     submitBtn.classList.add('btn-processing');
 
     const nameInput = document.getElementById('c-name') as HTMLInputElement;
     const name = nameInput ? nameInput.value : session.user.user_metadata?.full_name || 'Premium Member';
+    const userEmail = session.user.email; // Guaranteed to capture the email!
     
-    // Calculate final total including shipping
     const subtotal = this.cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const shippingCost = this.selectedShipping ? Number(this.selectedShipping.rate) : 0;
     const totalAmount = subtotal - Math.floor(subtotal * (this.appliedDiscount / 100)) + shippingCost;
 
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    const userId = session.user.id;
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
     const { error } = await supabase.from('orders').insert({
       id: this.orderId,
-      user_id: userId,
+      user_id: session.user.id,
       customer_name: name,
+      customer_email: userEmail, // Saves directly to database
       total_amount: totalAmount,
       status: 'Paid'
     });
@@ -245,7 +222,7 @@ export class CheckoutManager {
       submitBtn.innerText = 'Confirm & Pay';
       submitBtn.disabled = false;
       submitBtn.classList.remove('btn-processing');
-      showToast('Error securely saving your order. Please try again.', 'error');
+      showToast('Error saving order: ' + error.message, 'error');
       return;
     }
 
@@ -265,9 +242,7 @@ export class CheckoutManager {
     const successHTML = `
       <div id="order-success-screen" class="success-screen" style="text-align: center; padding: 2rem 0;">
         <div class="success-icon" style="margin: 0 auto 1.5rem auto; width: 60px; height: 60px; background: #000; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 30px; height: 30px;">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 30px; height: 30px;"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
         </div>
         <h2 style="font-family: 'Italiana', serif; font-size: 2.5rem; margin-bottom: 1rem;">Order Placed</h2>
         <p style="color: #666; margin-bottom: 2rem;">Thank you for your purchase.</p>
@@ -289,7 +264,6 @@ export class CheckoutManager {
       document.getElementById('btn-continue-shopping')?.addEventListener('click', () => {
         document.body.style.overflow = 'auto';
         this.modal?.classList.remove('active');
-        
         setTimeout(() => {
           this.resetModalState();
           window.location.href = '/shop'; 
@@ -302,26 +276,13 @@ export class CheckoutManager {
     const formContainer = document.getElementById('checkout-form');
     const successScreen = document.getElementById('order-success-screen');
     const submitBtn = document.querySelector('#checkout-form button[type="submit"]') as HTMLButtonElement;
-    
-    const promoBtn = document.getElementById('apply-promo-btn') as HTMLButtonElement;
-    const promoInput = document.getElementById('promo-code-input') as HTMLInputElement;
-
     if (formContainer) formContainer.style.display = 'block'; 
     if (successScreen) successScreen.remove();
-    
     if (submitBtn) {
       submitBtn.innerText = 'Confirm & Pay';
       submitBtn.disabled = false;
       submitBtn.classList.remove('btn-processing');
     }
-    
-    if (promoBtn && promoInput) {
-      promoBtn.innerText = 'Apply';
-      promoBtn.style.background = '#000';
-      promoInput.disabled = false;
-      promoInput.value = '';
-    }
-    
     const form = document.getElementById('checkout-form') as HTMLFormElement;
     if (form) form.reset();
   }

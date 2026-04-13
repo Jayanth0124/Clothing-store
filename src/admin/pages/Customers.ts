@@ -32,7 +32,7 @@ export class CustomersPage {
   }
 
   async fetchCustomers() {
-    // 1. Fetch all orders to build the customer profiles dynamically
+    // 1. Fetch all orders
     const { data: orders, error } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
     const wrapper = document.getElementById('customers-table-wrapper');
     if (!wrapper) return;
@@ -43,25 +43,29 @@ export class CustomersPage {
     }
 
     this.allOrders = orders;
-    const customerMap: Record<string, { name: string; orders: number; totalSpent: number; lastOrder: string }> = {};
+    
+    // 2. Map customers strictly by EMAIL, not name
+    const customerMap: Record<string, { name: string; email: string; orders: number; totalSpent: number; lastOrder: string }> = {};
 
     orders.forEach(order => {
-      if (!order.customer_name) return;
-      const nameKey = order.customer_name.trim().toLowerCase();
+      // Fallback to name if it's an old order before we added the email column
+      const uniqueKey = order.customer_email ? order.customer_email.trim().toLowerCase() : (order.customer_name ? order.customer_name.trim().toLowerCase() : 'unknown');
       
-      if (!customerMap[nameKey]) {
-        customerMap[nameKey] = {
-          name: order.customer_name, 
+      if (!customerMap[uniqueKey]) {
+        customerMap[uniqueKey] = {
+          name: order.customer_name || 'Guest', 
+          email: order.customer_email || 'No email provided',
           orders: 0,
           totalSpent: 0,
           lastOrder: order.created_at
         };
       }
-      customerMap[nameKey].orders += 1;
+      
+      customerMap[uniqueKey].orders += 1;
       
       // Do not count refunded/cancelled orders in Lifetime Value!
       if (order.status !== 'Cancelled' && order.status !== 'Refunded') {
-        customerMap[nameKey].totalSpent += (order.total_amount || 0);
+        customerMap[uniqueKey].totalSpent += (order.total_amount || 0);
       }
     });
 
@@ -70,13 +74,18 @@ export class CustomersPage {
     const columns: ColumnDef[] = [
       { 
         key: 'name', 
-        label: 'Customer Name',
-        render: (val) => `<div style="display: flex; align-items: center; gap: 1rem;">
-                            <div style="width: 35px; height: 35px; border-radius: 50%; background: #000; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-family: 'Manrope', sans-serif;">
-                              ${val.charAt(0).toUpperCase()}
-                            </div>
-                            <span style="font-weight: 600; text-transform: capitalize;">${val}</span>
-                          </div>`
+        label: 'Customer Info',
+        render: (val, row) => `
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="width: 35px; height: 35px; border-radius: 50%; background: #000; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-family: 'Manrope', sans-serif;">
+              ${val.charAt(0).toUpperCase()}
+            </div>
+            <div style="display: flex; flex-direction: column;">
+              <span style="font-weight: 600; text-transform: capitalize; color: #111;">${val}</span>
+              <span style="font-size: 0.75rem; color: #888;">${row.email}</span>
+            </div>
+          </div>
+        `
       },
       { 
         key: 'orders', 
@@ -96,7 +105,7 @@ export class CustomersPage {
     ];
 
     const grid = new DataGrid(columns, this.customerList, (customer) => `
-      <button class="action-btn view-profile-btn" data-name="${customer.name}" style="background: #fff; border: 1px solid #ddd; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 0.75rem; color: #111; letter-spacing: 0.5px; transition: all 0.2s;" onmouseover="this.style.borderColor='#000'; this.style.color='#000';" onmouseout="this.style.borderColor='#ddd'; this.style.color='#111';">
+      <button class="action-btn view-profile-btn" data-email="${customer.email}" data-name="${customer.name}" style="background: #fff; border: 1px solid #ddd; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 0.75rem; color: #111; letter-spacing: 0.5px; transition: all 0.2s;" onmouseover="this.style.borderColor='#000'; this.style.color='#000';" onmouseout="this.style.borderColor='#ddd'; this.style.color='#111';">
         VIEW PROFILE
       </button>
     `);
@@ -110,8 +119,10 @@ export class CustomersPage {
       const profileBtn = target.closest('.view-profile-btn') as HTMLElement;
       
       if (profileBtn) {
-        const customerName = profileBtn.getAttribute('data-name');
-        if (customerName) this.openCustomerModal(customerName);
+        // Retrieve by email now to guarantee exact match
+        const email = profileBtn.getAttribute('data-email');
+        const name = profileBtn.getAttribute('data-name');
+        if (email && name) this.openCustomerModal(email, name);
       }
     });
 
@@ -123,15 +134,18 @@ export class CustomersPage {
     });
   }
 
-  openCustomerModal(customerName: string) {
-    const customer = this.customerList.find(c => c.name === customerName);
+  openCustomerModal(customerEmail: string, customerName: string) {
+    const customer = this.customerList.find(c => c.email === customerEmail);
     if (!customer) return;
 
-    const history = this.allOrders.filter(o => 
-      o.customer_name && o.customer_name.trim().toLowerCase() === customerName.trim().toLowerCase()
-    );
+    // Filter history safely checking if email matches
+    const history = this.allOrders.filter(o => {
+      if (o.customer_email && o.customer_email.toLowerCase() === customerEmail.toLowerCase()) return true;
+      // Fallback for old orders before email was tracked
+      if (!o.customer_email && o.customer_name && o.customer_name.toLowerCase() === customerName.toLowerCase()) return true;
+      return false;
+    });
 
-    // EXACT VIP LOGIC: Strictly more than 10 orders
     const isVIP = customer.orders > 10;
     const badgeText = isVIP ? 'VIP Customer' : 'Standard Customer';
     const badgeColor = isVIP ? '#d4af37' : '#888'; 
@@ -148,7 +162,10 @@ export class CustomersPage {
               </div>
               <div>
                 <h2 style="margin: 0; font-family: 'Manrope', sans-serif; font-size: 1.4rem; color: #111;">${customer.name}</h2>
-                <span style="font-size: 0.75rem; color: ${badgeColor}; background: ${badgeBg}; padding: 4px 10px; border-radius: 6px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; display: inline-block; margin-top: 4px;">${badgeText}</span>
+                <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
+                  <span style="font-size: 0.8rem; color: #666;">${customer.email}</span>
+                  <span style="font-size: 0.7rem; color: ${badgeColor}; background: ${badgeBg}; padding: 3px 8px; border-radius: 6px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px;">${badgeText}</span>
+                </div>
               </div>
             </div>
             <button class="close-modal-btn" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #888;">&times;</button>
@@ -168,7 +185,6 @@ export class CustomersPage {
           <h3 style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #eee;">Order History</h3>
           <div style="max-height: 250px; overflow-y: auto; padding-right: 10px;">
             ${history.map(order => {
-              // Apply specific muted colors for returned/cancelled orders
               let statusColor = '#888';
               let statusBg = '#f4f4f4';
               if (order.status === 'Paid' || order.status === 'Delivered') { statusColor = '#1e8e3e'; statusBg = 'rgba(30,142,62,0.1)'; }
