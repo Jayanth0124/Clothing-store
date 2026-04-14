@@ -12,6 +12,7 @@ import Profile from './pages/Profile';
 import AdminShell from './pages/AdminShell';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
+import NotFound from './pages/NotFound'; // <-- IMPORT THE NEW 404 PAGE
 
 import { CartManager } from './ts/cart';
 import { CheckoutManager } from './ts/checkout';
@@ -65,6 +66,9 @@ export default function App() {
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/terms" element={<Terms />} />
                     <Route path="/privacy" element={<Privacy />} />
+                    
+                    {/* --- CATCH-ALL ROUTE: This fixes the UI collapse --- */}
+                    <Route path="*" element={<NotFound />} />
                 </Routes>
             </div>
 
