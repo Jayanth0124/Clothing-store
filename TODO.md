@@ -1,18 +1,11 @@
-# Docker Setup Complete (Multi-Arch Ready)
+# SEO Configuration Task
 
-See TODO-docker-multiarch.md for Buildx instructions.
+## Steps:
+- [x] 1. Create public/robots.txt with standard SEO rules and sitemap reference
+- [x] 2. Create public/sitemap.xml listing main public routes (/home, /shop, /about, etc.)
+- [x] 3. Update index.html <head> to link sitemap.xml and add robots meta
+- [x] 4. Test with `npm run build` and check dist/public/
+- [x] 5. Deploy and submit to Google Search Console (manual)
 
-## Steps Completed:
-- ✅ Created Dockerfile (multi-stage Node build + Nginx serve)
-- ✅ Created .dockerignore
-- ✅ Created this TODO.md
-
-## Next Steps:
-1. Build the image: `docker build -t vito-app .`
-2. Run the container: `docker run -p 8080:80 vito-app`
-3. Access app at http://localhost:8080
-
-## Optional:
-- docker-compose.yml for local Supabase if needed (client-side auth handles env vars).
-- Push to registry: `docker tag vito-app yourusername/vito-app && docker push ...`
+Current progress: Task complete. Files created: public/robots.txt, public/sitemap.xml. index.html updated.
 

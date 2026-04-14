@@ -1,0 +1,11 @@
+
+# www.vitogingliesstore.netlify.app/robots.txt
+
+User-agent: *
+Allow: /
+
+Disallow: /admin/
+Disallow: /admin/*
+
+Sitemap: https://vitogingliesstore.netlify.app/sitemap.xml
+
