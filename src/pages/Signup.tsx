@@ -11,6 +11,14 @@ export default function Signup() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // --- NEW: Free Frontend Password Validation ---
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
+    if (!passwordRegex.test(password)) {
+      alert("Security Requirement: Password must be at least 8 characters long and include at least one number.");
+      return;
+    }
+
     setLoading(true);
 
     const { error } = await supabase.auth.signUp({ 
@@ -25,7 +33,7 @@ export default function Signup() {
       alert(error.message);
       setLoading(false);
     } else {
-      alert("Account created successfully!");
+      alert("Account created successfully! Welcome to the Atelier.");
       navigate('/login');
     }
   };
@@ -51,7 +59,7 @@ export default function Signup() {
           
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', color: '#000', fontWeight: 600, marginBottom: '0.5rem', fontFamily: 'Manrope, sans-serif' }}>Secure Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ width: '100%', padding: '1.2rem', border: '1px solid #e5e5e5', borderRadius: '0', fontFamily: 'Manrope, sans-serif', fontSize: '1rem', outline: 'none', background: '#fafafa' }} />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="Min 8 characters & 1 number" style={{ width: '100%', padding: '1.2rem', border: '1px solid #e5e5e5', borderRadius: '0', fontFamily: 'Manrope, sans-serif', fontSize: '1rem', outline: 'none', background: '#fafafa' }} />
           </div>
           
           <button type="submit" disabled={loading} style={{ width: '100%', background: '#000', color: '#fff', padding: '1.2rem', border: '1px solid #000', fontWeight: 600, textTransform: 'uppercase', cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'Manrope, sans-serif', fontSize: '0.9rem', marginTop: '1rem', letterSpacing: '1px' }}>
